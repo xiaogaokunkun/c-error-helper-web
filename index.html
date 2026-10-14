@@ -611,7 +611,7 @@ function parseErrLines(raw){
     const t=L.trim();
     if(!t) return;
     let ln=null, col=null, msg=t;
-    let m=t.match(/^(?:[A-Za-z]:\\[^:]*|[^\s:]+):(\d+):(\d+):\s*(.*)$/);
+    let m=t.match(/^(?:[A-Za-z]:[\\/][^:]*|[^\s:]+):(\d+):(\d+):\s*(.*)$/);
     if(m){ ln=+m[1]; col=+m[2]; msg=m[3]; }
     else{
       m=t.match(/^(\d+)\s+(\d+)\s+(.*)$/);
