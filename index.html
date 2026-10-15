@@ -7,16 +7,34 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="wrap">
+<div class="app">
+  <aside class="nav" id="nav">
+    <div class="navhead">
+      <span class="navbrand">报错急救箱</span>
+      <button class="navtoggle" id="navToggle" type="button" aria-expanded="true" title="收起 / 展开左栏">⇤</button>
+    </div>
+    <nav class="navlist">
+      <button class="tab on" data-p="err" type="button" title="报错翻译"><span class="ic">🔧</span><span class="tx">报错翻译</span></button>
+      <button class="tab" data-p="chk" type="button" title="代码体检"><span class="ic">🔍</span><span class="tx">代码体检</span></button>
+      <button class="tab" data-p="int" type="button" title="定积分计算"><span class="ic">∫</span><span class="tx">定积分计算</span></button>
+      <button class="tab" data-p="log" type="button" title="不报错但结果错"><span class="ic">🐞</span><span class="tx">不报错但结果错</span></button>
+      <button class="tab" data-p="fb" type="button" title="反馈"><span class="ic">💬</span><span class="tx">反馈</span></button>
+    </nav>
+    <div class="navmore">
+      <a class="navlink" href="https://marketplace.visualstudio.com/items?itemName=xiaogaokunkun.c-error-helper" target="_blank" rel="noopener" title="VS Code 扩展市场：C语言报错翻译器（在新标签页打开）">
+        <span class="ic">🧩</span>
+        <span class="tx"><b>VS Code 版</b><small>中文报错翻译插件</small></span>
+      </a>
+      <a class="navlink" href="https://github.com/xiaogaokunkun/c-error-helper" target="_blank" rel="noopener" title="GitHub 源码 / 提 issue（在新标签页打开）">
+        <span class="ic">⭐</span>
+        <span class="tx"><b>GitHub</b><small>源码 / 提 issue</small></span>
+      </a>
+    </div>
+  </aside>
+
+  <main class="main">
   <h1>C 语言报错翻译器</h1>
   <p class="sub">把 Dev-C++ / GCC 的报错原文粘进来 → 告诉你哪错了、怎么改。<strong>纯本地运行，不联网，不传代码。</strong></p>
-
-  <div class="tabs">
-    <button class="tab on" data-p="err">报错翻译</button>
-    <button class="tab" data-p="chk">代码体检</button>
-    <button class="tab" data-p="int">定积分计算</button>
-    <button class="tab" data-p="log">不报错但结果错</button>
-  </div>
 
   <!-- ============ 1 报错翻译 ============ -->
   <div class="pane on" id="p-err">
@@ -82,9 +100,36 @@ main.c:12:5: error: 'sum' undeclared (first use in this function)"></textarea>
     <div id="logList"></div>
   </div>
 
+  <!-- ============ 5 反馈 ============ -->
+  <div class="pane" id="p-fb">
+    <p class="why">报错没认出来、解释看不懂、想加个功能——都可以告诉我。<strong>这个页面不联网、不会自动上传任何东西</strong>：点「复制反馈内容」只是把一段文字放进剪贴板，发不发、发到哪，由你决定。</p>
+
+    <label>1. 是哪一类问题？</label>
+    <div class="chips" id="fbChips">
+      <button type="button" class="chip" data-t="报错没认出来">报错没认出来</button>
+      <button type="button" class="chip" data-t="解释看不懂或说错了">解释看不懂 / 说错了</button>
+      <button type="button" class="chip" data-t="想加个功能">想加个功能</button>
+      <button type="button" class="chip" data-t="页面显示不正常">页面显示不正常</button>
+    </div>
+
+    <label>2. 具体情况（想写多少写多少）</label>
+    <textarea id="fbTxt" style="min-height:110px" placeholder="例如：Dev-C++ 报 [Error] xxx，页面说没认出来；或者：我按它说的改了还是编译不过"></textarea>
+
+    <label class="chk"><input type="checkbox" id="fbAttach"> 把「报错翻译」里我刚粘的内容一起带上（方便复现）</label>
+
+    <div class="row">
+      <button class="act main" id="fbCopy">复制反馈内容</button>
+      <a class="act" id="fbGh" href="https://github.com/xiaogaokunkun/c-error-helper-web/issues/new" target="_blank" rel="noopener">去 GitHub 提 issue</a>
+      <button class="act" id="fbClr">清空</button>
+    </div>
+    <div id="fbOut"></div>
+    <div class="ln">复制出来的是一段纯文字：粘到微信 / QQ 发我，或者贴进 GitHub issue 都行。里面的文件路径（<code>C:\Users\...</code> 这类）会被自动抹成 <code>&lt;路径&gt;</code>，页面也不会偷偷上传任何东西。</div>
+  </div>
+
   <div class="foot">
     共收录 <strong id="cnt">0</strong> 条编译报错 · 纯前端 · 不联网 · 不上传代码
   </div>
+  </main>
 </div>
 
 <script src="rules.js"></script>

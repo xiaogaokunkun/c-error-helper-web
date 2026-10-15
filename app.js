@@ -1,13 +1,38 @@
 /* C 语言报错翻译器 · 网页版 —— 逻辑（解析 / 渲染 / 体检 / 定积分 / URL 参数） */
 /* ---------- 渲染逻辑 ---------- */
 const $=s=>document.querySelector(s);
-document.querySelectorAll('.tab').forEach(t=>{
+const TABS=[...document.querySelectorAll('.tab')];
+TABS.forEach(t=>{
   t.onclick=()=>{
-    document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));
-    document.querySelectorAll('.pane').forEach(p=>
-      p.classList.toggle('on', p.id==='p-'+t.dataset.p));
+    const prev=TABS.findIndex(x=>x.classList.contains('on'));
+    const next=TABS.indexOf(t);
+    const pane=document.getElementById('p-'+t.dataset.p);
+    document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+    if(pane){
+      // 往下切 → 新内容从下面升上来；往上切 → 从上面降下来（"上下"都用到）
+      pane.style.setProperty('--dy', (next>=prev?1:-1)*16+'px');
+      void pane.offsetWidth;          // 强制重排，动画才会重新播
+      pane.classList.add('on');
+    }
+    TABS.forEach(x=>x.classList.toggle('on',x===t));
   };
 });
+/* 左栏收起 / 展开（状态记住，窄屏下由 CSS 强制展开） */
+(function(){
+  var btn=document.getElementById('navToggle');
+  if(!btn) return;
+  var KEY='ceh.navCollapsed';
+  try{ if(localStorage.getItem(KEY)==='1')
+    document.body.classList.add('nav-collapsed'); }catch(e){}
+  var sync=function(){ btn.setAttribute('aria-expanded',
+    document.body.classList.contains('nav-collapsed')?'false':'true'); };
+  sync();
+  btn.onclick=function(){
+    var on=document.body.classList.toggle('nav-collapsed');
+    try{ localStorage.setItem(KEY, on?'1':'0'); }catch(e){}
+    sync();
+  };
+})();
 const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const badge=s=>({e:'错误',w:'警告',i:'提示'}[s]);
 const stripTags=s=>s.replace(/<[^>]+>/g,'');
@@ -58,8 +83,16 @@ function parseErrLines(raw){
     let body=(mi>=0?msg.slice(mi):msg).replace(/\[(?:Error|Warning|Note)\]\s*/i,'').trim();
     if(!body) return;
     const lowT=t.toLowerCase();
-    const r=RULES.find(function(x){return x.k.some(function(k){return lowT.indexOf(k.toLowerCase())>=0;});});
-    if(!r) return;                        // 没认出来的不进清单
+    // 同一行可能同时符合多条规则 → 取优先级最高的那条（p 越小越是根因），
+    // 与 translate() 里的排序口径保持一致（原来用 RULES.find 只取数组顺序第一条）
+    const hits=RULES.filter(function(x){
+      return x.k.some(function(k){return lowT.indexOf(k.toLowerCase())>=0;});
+    });
+    if(!hits.length) return;              // 没认出来的不进清单
+    hits.sort(function(a,b){
+      return (a.p===undefined?5:a.p)-(b.p===undefined?5:b.p);
+    });
+    const r=hits[0];
     const key=ln+'|'+r.n;
     if(seen.has(key)) return;             // 同一行同一类错只留一条
     seen.add(key);
@@ -220,7 +253,7 @@ function bodyScan(code){
     for(let c=0;c<L.length;c++){
       const ch=L[c];
       if(FULLWIDTH[ch]) fw.push({ln:i+1,col:c+1,ch,as:FULLWIDTH[ch]});
-      else if(ch.charCodeAt(0)===0x3000) fw.push({ln:i+1,col:c+1,ch:'（全角空格）',as:'空格'});
+      // 注：全角空格（U+3000）已经在 FULLWIDTH 字典里，不需要单独再判一次
     }
   });
   // 2 括号配对
@@ -377,6 +410,59 @@ $('#logList').innerHTML=LOGIC.map(o=>'<div class="card w"><h3>'+o.n+'</h3>'
 
 $('#cnt').textContent=RULES.length;
 $('#errOut').innerHTML='<div class="empty">把报错粘进去，点「翻译一下」</div>';
+
+/* ---------- 反馈 ---------- */
+/* 想让用户直接发邮件/加 QQ，把联系方式填在这里（例：'xiaogao@qq.com'）；留空则只提示"发我" */
+const FB_CONTACT='';
+const FB_VER='2026-10-15';
+function fbScrub(s){
+  return String(s||'')
+    .replace(/[A-Za-z]:[\\/][^\s:'"<>|]*/g,'<路径>')
+    .replace(/\/(?:home|Users|用户)\/[^\s:'"<>|]*/g,'<路径>')
+    .replace(/\\\\[^\s:'"<>|]+/g,'<路径>');
+}
+function fbBuild(){
+  const t=[...document.querySelectorAll('#fbChips .chip.on')].map(function(c){return c.dataset.t;});
+  const d=$('#fbTxt').value.trim();
+  const L=[];
+  L.push('【C 语言报错翻译器 · 反馈】');
+  L.push('类型：'+(t.length?t.join('、'):'(没选)'));
+  L.push('情况：'+(d?fbScrub(d):'(没写)'));
+  if($('#fbAttach').checked){
+    L.push('');
+    L.push('我粘进去的报错（已去掉路径）：');
+    L.push(fbScrub($('#errIn').value.trim())||'(空的)');
+  }
+  L.push('');
+  L.push('--- 页面信息（自动带上）---');
+  L.push('页面版本 '+FB_VER+' · 规则 '+RULES.length+' 条');
+  L.push('浏览器 '+navigator.userAgent);
+  return L.join('\n');
+}
+document.querySelectorAll('#fbChips .chip').forEach(function(c){
+  c.onclick=function(){ c.classList.toggle('on'); };
+});
+$('#fbCopy').onclick=function(){
+  var btn=this, old=btn.textContent, text=fbBuild();
+  var tail=FB_CONTACT?('粘好后发我：'+FB_CONTACT):'粘好后发我（微信 / QQ 都行）';
+  var done=function(ok){
+    btn.textContent=ok?'已复制 ✓':'请手动选中';
+    setTimeout(function(){btn.textContent=old;},1700);
+    $('#fbOut').innerHTML = ok
+      ? '<div class="card i"><h3>已复制到剪贴板</h3><div class="why">'+esc(tail)
+        +'。也可以直接粘到 GitHub 的 issue 里。</div></div>'
+      : '<div class="empty">这个浏览器不让写剪贴板——手动选中下面这段复制就行：</div><pre>'+esc(text)+'</pre>';
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){done(true);},function(){done(legacyCopy(text));});
+  } else done(legacyCopy(text));
+};
+$('#fbClr').onclick=function(){
+  $('#fbTxt').value='';
+  $('#fbAttach').checked=false;
+  document.querySelectorAll('#fbChips .chip').forEach(function(c){c.classList.remove('on');});
+  $('#fbOut').innerHTML='';
+};
 
 /* 注意：必须放在所有初始化之后 —— 否则会被上面那行的初始文案覆盖 */
 runUrlParams();
