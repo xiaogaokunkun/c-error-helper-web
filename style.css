@@ -73,6 +73,7 @@ body.nav-collapsed .navlink .tx{display:none}
   body.nav-collapsed .nav{width:auto}
   body.nav-collapsed .tab .tx{display:inline}
   body.nav-collapsed .navlink .tx{display:flex}
+  body.nav-collapsed .navbrand{display:block}
 }
 /* ---------- 面板切换：竖向滑动 + 淡入（变速：先快后慢） ----------
    想调手感只改这三个值：

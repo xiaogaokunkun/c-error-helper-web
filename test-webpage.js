@@ -106,7 +106,7 @@ ok('#fbCopy 绑定（反馈）', typeof el('#fbCopy').onclick === 'function');
 // ---------- 2) 一条条喂真实的 Dev-C++ / gcc 报错 ----------
 const cases = [
   ['A 多行真实输出（漏分号）',
-    "C:\\Users\\31546\\Desktop\\a.c: In function 'int main()':\nC:\\Users\\31546\\Desktop\\a.c:5:14: error: expected ';' before '}' token"],
+    "C:\\Users\\someone\\Desktop\\a.c: In function 'int main()':\nC:\\Users\\someone\\Desktop\\a.c:5:14: error: expected ';' before '}' token"],
   ['B 全角标点', "[Error] stray '\\357' in program"],
   ['C 链接失败', '[Error] ld returned 1 exit status'],
   ['D 未声明', "error: 'scanf' was not declared in this scope; did you mean 'scanf_s'?"],
@@ -179,7 +179,7 @@ console.log('\n=== 6) 反馈：fbBuild / fbScrub ===');
 try {
   const txt = vm.runInContext(`(function(){
     document.querySelectorAll('#fbChips .chip');   // 桩里返回 []
-    return fbScrub('C:\\\\Users\\\\31546\\\\Desktop\\\\作业\\\\a.c:5:14: error: expected ;') ;
+    return fbScrub('C:\\\\Users\\\\someone\\\\Desktop\\\\作业\\\\a.c:5:14: error: expected ;') ;
   })()`, ctx);
   console.log('  fbScrub 结果:', txt);
   ok('路径被抹掉', txt.includes('<路径>') && !txt.includes('31546'), '');
@@ -204,6 +204,26 @@ try {
   console.log('  命中的规则:', d.hits.join(' / ') || '(无)');
   console.log('  清单里选中的:', d.picked.join(' / ') || '(无)');
   ok('清单选中 = 优先级最高的那条', d.best !== null && d.picked.includes(d.best), '期望 ' + d.best);
+} catch (e) { console.log('  ❌ 抛错:', e.message); fail++; }
+
+// ---------- 8) 回归：代码体检的三类误报（2026-10-15 独立复核发现） ----------
+console.log('\n=== 8) 回归：代码体检误报 ===');
+const scan = (source) => {
+  const { doc: d } = makeCtx('');
+  const q = s => d.querySelector(s);
+  q('#codeIn').value = source; q('#chkOut').innerHTML = '';
+  q('#doChk').onclick();
+  return strip(q('#chkOut').innerHTML);
+};
+try {
+  const t1 = scan('int main(){\n  int a[3];\n  a[0]=1;\n  return 0;\n}');
+  ok('合法 ASCII 数组不报「全角字符」', t1.includes('没发现中文全角字符'), t1.slice(0, 60));
+  const t2 = scan('#include <stdio.h>\nint main(){ printf("hi"); return 0; }');
+  ok('#include <stdio.h> 不误报缺头文件', !t2.includes('没看到'), t2.slice(0, 60));
+  const t3 = scan('int main(){\n  return 0;\n}}');
+  ok('多一个右括号时不自相矛盾', !(t3.includes('括号全部配对') && t3.includes('括号不配对')), t3.slice(0, 100));
+  const t4 = scan('int main(){\n  int a = 1】;\n}');
+  ok('全角 】 仍能被识别', t4.includes('全角字符') && t4.includes('】'), t4.slice(0, 60));
 } catch (e) { console.log('  ❌ 抛错:', e.message); fail++; }
 
 console.log(`\n=== 汇总：${fail === 0 ? '全部通过' : fail + ' 项失败'} ===`);

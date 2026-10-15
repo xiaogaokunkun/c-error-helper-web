@@ -240,7 +240,7 @@ main.c:14:1: error: expected declaration or statement at end of input
 
 /* ---------- 代码体检 ---------- */
 const FULLWIDTH={'，':'逗号 ,','。':'句号 .','；':'分号 ;','：':'冒号 :','（':'左括号 (',
- '）':'右括号 )','【':'[',']':'[', '《':'<','》':'>','、':'逗号','？':'问号 ?','！':'叹号 !',
+ '）':'右括号 )','【':'[','】':']', '《':'<','》':'>','、':'逗号','？':'问号 ?','！':'叹号 !',
  '“':'"','”':'"','‘':"'",'’':"'",'～':'~','＠':'@','＃':'#','％':'%','＆':'&','＊':'*',
  '＋':'+','－':'-','＝':'=','＜':'<','＞':'>','／':'/','｜':'|','　':'全角空格'};
 
@@ -257,8 +257,7 @@ function bodyScan(code){
     }
   });
   // 2 括号配对
-  const stack=[],pair=[['(',')'],['[',']'],['{','}']];
-  const open={'((' :''}; // placeholder unused
+  const stack=[];
   const pairs={'(':')','[':']','{':'}'};
   const clos={')':'(',']':'[','}':'{'};
   let inStr=false,quoteType='';
@@ -309,7 +308,8 @@ $('#doChk').onclick=()=>{
       +r.stack.map(s=>'<tr><td>第 '+s.ln+' 行 第 '+s.col+' 列</td><td><code>'+esc(s.ch)+'</code></td></tr>').join('')
       +'</table><ul class="fix"><li>函数、if、for、while、结构体的 <code>{ }</code> 全都要成对</li>'
       +'<li>写完一段先缩进对齐，漏括号一眼就看得出来</li></ul></div>';
-  }else{
+  }else if(!r.issues.length){
+    // 有多余的右括号时就不能说「全部配对」，否则两份报告自相矛盾
     html+='<div class="card o"><h3>括号全部配对<span class="badge o">通过</span></h3>'
       +'<div class="why">花括号、圆括号、方括号都没问题。</div></div>';
   }
@@ -324,7 +324,7 @@ $('#doChk').onclick=()=>{
   if(/\bif\s*\(\s*[A-Za-z_]\w*\s*=\s*[^=]/.test(code)) hall.push({n:'<code>if</code> 里用了单个等号',d:'<code>if (x = 5)</code> 是赋值不是判断，永远为真。要写 <code>==</code>。'});
   if(/for\s*\([^;]*,[^;]*;[^)]*\)/.test(code)) hall.push({n:'<code>for</code> 括号里像是用了逗号',d:'<code>for</code> 的三个部分之间必须用<strong>分号</strong> <code>;</code> 隔开，不是逗号。'});
   if(/\d+\s*\/\s*\d+\s*;/.test(code)) hall.push({n:'整数除法嫌疑',d:'两个整数相除结果会截断小数（<code>7/2</code>=<code>3</code>）。要小数就写 <code>7.0/2</code>。'});
-  if(/#include\s*<\s*stdio\s*>/.test(code)===false && /printf|scanf/.test(code)) hall.push({n:'用了 printf/scanf 但没看到 <code>#include &lt;stdio.h&gt;</code>',d:'漏了头文件会出 warning，或者行为诡异。'});
+  if(/#include\s*<\s*stdio\.h\s*>/.test(code)===false && /printf|scanf/.test(code)) hall.push({n:'用了 printf/scanf 但没看到 <code>#include &lt;stdio.h&gt;</code>',d:'漏了头文件会出 warning，或者行为诡异。'});
   if(/$\s*$/m && /;/m && /^\s*int\s+main\s*\(\s*\)\s*$/m===false && /int\s+main\s*\(\s*void\s*\)/.test(code)===false && /int\s+main\s*\(/.test(code)===false) hall.push({n:'没找到 <code>int main()</code>',d:'每个程序都要有 <code>int main()</code> 入口，检查是不是打成了 <code>mian</code>。'});
   if(hall.length){
     html+='<div class="card w"><h3>经典写法坑检查<span class="badge w">看一眼</span></h3>'
