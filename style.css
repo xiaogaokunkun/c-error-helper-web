@@ -23,14 +23,14 @@
   --sh1:0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.04);
   --sh2:0 12px 32px rgba(16,24,40,.10);
 }
-@media (prefers-color-scheme:dark){
-  :root{--bg:#0f1216;--card:#171b21;--fg:#e6e9ee;--mut:#9aa5b1;--hint:#a6b2c0;--line:#252b34;
-        --accent:#5b93f5;--accent-ink:#7aa8ff;--err:#ff6b74;--errbg:rgba(255,107,116,.22);
-        --warn:#e0b154;--ok:#4ac26b;--code:#1d222a;
-        --sh1:0 1px 2px rgba(0,0,0,.45);--sh2:0 12px 32px rgba(0,0,0,.55)}
-  button.act.main,a.act.main{background:#4377c3;border-color:#4377c3} /* 原 #589bff 上白字只有 2.78:1 */
-  .empty{background:rgba(255,255,255,.02)}
-}
+/* 深色一律由 html.dark 驱动（JS 按「手动选择 > 系统偏好」决定加不加这个类）。
+   不再用 @media prefers-color-scheme：系统深色 + 用户手动选浅色时，媒体查询压不住。 */
+html.dark{--bg:#0f1216;--card:#171b21;--fg:#e6e9ee;--mut:#9aa5b1;--hint:#a6b2c0;--line:#252b34;
+      --accent:#5b93f5;--accent-ink:#7aa8ff;--err:#ff6b74;--errbg:rgba(255,107,116,.22);
+      --warn:#e0b154;--ok:#4ac26b;--code:#1d222a;
+      --sh1:0 1px 2px rgba(0,0,0,.45);--sh2:0 12px 32px rgba(0,0,0,.55)}
+html.dark button.act.main,html.dark a.act.main{background:#4377c3;border-color:#4377c3} /* 原 #589bff 上白字只有 2.78:1 */
+html.dark .empty{background:rgba(255,255,255,.02)}
 /* ---------- 背景层次：左 → 右，斜着排，一片一片，边缘圆润 + 层间阴影 ----------
    做法：不用渐变。6 张圆角竖色片，每张 width:32vw、位置每层右移 17vw，
    所以每张只露出左边 17vw 一条；外面套一层 .bg b 整体旋转 +9°，边界就从左下往右上斜（像 /）。
@@ -53,16 +53,14 @@ body.edge .bg i:nth-child(1){top:0;bottom:0;border-radius:0;box-shadow:none}
 .bg i:nth-child(4){left:91vw; background:#a9cdfc}
 .bg i:nth-child(5){left:108vw;background:#83b3f6}
 .bg i:nth-child(6){left:125vw;background:#639fee}
-@media (prefers-color-scheme:dark){
-  /* 暗色里「白→蓝」会把页面炸亮，改成「近黑 → 深蓝」，同向逐层加深 */
-  .bg i{box-shadow:-16px 5px 34px rgba(0,0,0,.55), -5px 2px 12px rgba(0,0,0,.4)}
-  .bg i:nth-child(1){background:#0a0d11}
-  .bg i:nth-child(2){background:#0b1018}
-  .bg i:nth-child(3){background:#0d1420}
-  .bg i:nth-child(4){background:#0f1828}
-  .bg i:nth-child(5){background:#11203a}
-  .bg i:nth-child(6){background:#13274a}
-}
+/* 暗色里「白→蓝」会把页面炸亮，改成「近黑 → 深蓝」，同向逐层加深 */
+html.dark .bg i{box-shadow:-16px 5px 34px rgba(0,0,0,.55), -5px 2px 12px rgba(0,0,0,.4)}
+html.dark .bg i:nth-child(1){background:#0a0d11}
+html.dark .bg i:nth-child(2){background:#0b1018}
+html.dark .bg i:nth-child(3){background:#0d1420}
+html.dark .bg i:nth-child(4){background:#0f1828}
+html.dark .bg i:nth-child(5){background:#11203a}
+html.dark .bg i:nth-child(6){background:#13274a}
 @media (max-width:760px){
   /* 6 片挤一屏会变成一排竖药丸：窄屏减到 4 片、圆角收小、色阶重采样 */
   .bg i{width:50vw;border-radius:24px}
@@ -72,11 +70,11 @@ body.edge .bg i:nth-child(1){top:0;bottom:0;border-radius:0;box-shadow:none}
   .bg i:nth-child(4){left:115vw;background:#7aabf2}
   .bg i:nth-child(5),.bg i:nth-child(6){display:none}
 }
-@media (max-width:760px) and (prefers-color-scheme:dark){
-  .bg i:nth-child(1){background:#0a0d11}
-  .bg i:nth-child(2){background:#0e1521}
-  .bg i:nth-child(3){background:#121d31}
-  .bg i:nth-child(4){background:#162744}
+@media (max-width:760px){
+  html.dark .bg i:nth-child(1){background:#0a0d11}
+  html.dark .bg i:nth-child(2){background:#0e1521}
+  html.dark .bg i:nth-child(3){background:#121d31}
+  html.dark .bg i:nth-child(4){background:#162744}
 }
 *{box-sizing:border-box}
 /* 让纵向滚动条的位置一直占着 —— 否则切到内容较短的标签页时整列内容会横向跳 7px */
@@ -105,10 +103,8 @@ body{margin:0;background:transparent;color:var(--fg);
 .topbar h1{font-size:20px;font-weight:700;margin:0;letter-spacing:.02em;white-space:nowrap}
 /* 变体 B（给 body 加 class="topbar-in"）：标题不贴视口最左，改成跟内容列左边界对齐 */
 body.topbar-in .topinner{max-width:1060px;margin:0 auto;padding:0 20px}
-@media (prefers-color-scheme:dark){
-  .topbar{background:rgba(16,22,30,.42);border-bottom-color:rgba(255,255,255,.07);
-    box-shadow:0 6px 22px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06)}
-}
+html.dark .topbar{background:rgba(16,22,30,.42);border-bottom-color:rgba(255,255,255,.07);
+  box-shadow:0 6px 22px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06)}
 @media (max-width:760px){
   .topbar{height:68px;border-radius:0 0 18px 18px}
   .topinner{height:68px;padding:0 14px}
@@ -142,6 +138,10 @@ body.topbar-in .topinner{max-width:1060px;margin:0 auto;padding:0 20px}
   text-overflow:ellipsis}
 .navlink:hover{background:var(--code)}
 .navlink:hover b{color:var(--accent)}
+/* 主题切换按钮直接穿 .navlink 的衣服（折叠态、窄屏那套规则全自动生效），
+   只需抹掉 button 的默认外观 */
+button.navlink{width:100%;border:0;background:transparent;font-family:inherit;font-size:var(--t3);
+  cursor:pointer;text-align:left}
 /* 线性 SVG 图标：尺寸/线宽/基线统一，颜色吃 currentColor —— 激活项自动变蓝，暗色自动变亮 */
 .ic2{width:18px;height:18px;display:block}
 .ic.svgi{display:flex;align-items:center;justify-content:center}
@@ -154,7 +154,7 @@ h1{font-size:var(--t5);line-height:1.4;margin:0 0 var(--s2);letter-spacing:.015e
 .tab .tx{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .tab:hover{background:var(--code);color:var(--fg)}
 .tab.on{color:var(--accent-ink);background:rgba(37,99,235,.10);font-weight:600}
-@media (prefers-color-scheme:dark){.tab.on{background:rgba(91,147,245,.14)}}
+html.dark .tab.on{background:rgba(91,147,245,.14)}
 /* 收起左栏：只留图标 */
 body.nav-collapsed .nav{width:56px}
 body.nav-collapsed .navbrand,body.nav-collapsed .tab .tx{display:none}
@@ -246,7 +246,7 @@ button.act:active,a.act:active{transform:translateY(1px)}
   padding-bottom:var(--s3);border-bottom:2px solid var(--line);margin-bottom:var(--s4)}
 .reshead h2{margin:0;font-size:var(--t4);font-weight:600;letter-spacing:.03em}
 .reshead .hint{font-size:var(--t1);color:var(--mut);font-weight:400;margin-left:var(--s2)}
-body.nores .reshead #resCopy{visibility:hidden}
+body.nores .reshead #resCopy,body.nores .reshead #chkCopy,body.nores .reshead #intCopy{visibility:hidden}
 /* 空状态：把「结果会出现在这里」框住，而不是让一行灰字飘在空白里 */
 .empty{color:var(--mut);text-align:center;padding:var(--s6) var(--s4);font-size:var(--t3);
   border:1px dashed var(--line);border-radius:var(--r2);background:rgba(255,255,255,.55)}
@@ -349,7 +349,7 @@ mark.fw{background:var(--errbg);border:1px solid var(--err);
    切换时先朝目标方向伸长（把两个选项连同中间那段一起包住），再把尾巴收回来 —— 像液体流过去。
    .inkgoo 上的 goo 滤镜把圆角糊成鼓包，伸长的过程就有了"黏"的质感。 */
 :root{--ink:#1d4ed8}
-@media (prefers-color-scheme:dark){:root{--ink:#1f56cc}}
+html.dark{--ink:#1f56cc}
 .svgdefs{position:absolute;width:0;height:0;overflow:hidden}
 .navlist{position:relative}
 .inkgoo{position:absolute;left:0;right:0;top:0;bottom:0;z-index:0;pointer-events:none;
@@ -394,8 +394,8 @@ mark.fw{background:var(--errbg);border:1px solid var(--err);
   .app{margin-left:calc(var(--railw) + max(20px, (100% - var(--railw) - 1060px)/2));
        margin-right:auto;padding-top:112px}
 }
-@media (min-width:761px) and (prefers-color-scheme:dark){
-  .nav{background:rgba(24,38,60,.5);border-right-color:rgba(255,255,255,.08);
+@media (min-width:761px){
+  html.dark .nav{background:rgba(24,38,60,.5);border-right-color:rgba(255,255,255,.08);
     box-shadow:8px 0 26px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.05)}
 }
 
@@ -430,11 +430,9 @@ mark.fw{background:var(--errbg);border:1px solid var(--err);
 .intro-title span{opacity:0;transform:translateY(32px) scale(.3);
   animation:chIn .6s cubic-bezier(.22,1,.36,1) forwards}
 /* 深色模式：换成近黑底 + 白色发光标题（跟网页暗色配色一致） */
-@media (prefers-color-scheme:dark){
-  .intro{background:radial-gradient(ellipse 90% 70% at 50% 42%, #1b2a5e 0%, #101a38 48%, #070a14 100%)}
-  .intro::before{background:radial-gradient(circle at 50% 50%, rgba(90,130,255,.20) 0%, rgba(90,130,255,.06) 40%, transparent 65%)}
-  .intro-title{color:#fff;text-shadow:0 0 28px rgba(120,160,255,.6),0 0 90px rgba(80,120,255,.35)}
-}
+html.dark .intro{background:radial-gradient(ellipse 90% 70% at 50% 42%, #1b2a5e 0%, #101a38 48%, #070a14 100%)}
+html.dark .intro::before{background:radial-gradient(circle at 50% 50%, rgba(90,130,255,.20) 0%, rgba(90,130,255,.06) 40%, transparent 65%)}
+html.dark .intro-title{color:#fff;text-shadow:0 0 28px rgba(120,160,255,.6),0 0 90px rgba(80,120,255,.35)}
 .intro-title span:nth-child(1){animation-delay:.05s}
 .intro-title span:nth-child(2){animation-delay:.13s}
 .intro-title span:nth-child(3){animation-delay:.21s}

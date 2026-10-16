@@ -1,4 +1,9 @@
 /* C 语言报错翻译器 · 网页版 —— 逻辑（解析 / 渲染 / 体检 / 定积分 / URL 参数） */
+/* 外部程序（桌面「报错急救」）带 ?t=/?c= 打开时是要立刻看结果的 —— 全站动画都得让路。
+   必须在 runUrlParams() 之前读：它跑完会把地址栏参数 replaceState 掉。 */
+var AUTO_OPEN=(function(){ try{
+  var q=new URLSearchParams(location.search); return !!(q.get('t')||q.get('c'));
+}catch(e){ return false; } })();
 /* ---------- 渲染逻辑 ---------- */
 const $=s=>document.querySelector(s);
 const TABS=[...document.querySelectorAll('.tab')];
@@ -470,17 +475,26 @@ runUrlParams();
 (function(){
   var ids=['errOut','chkOut','intOut'];
   function sync(){
-    var any=ids.some(function(id){
+    var has=function(id){
       var el=document.getElementById(id);
       return !!(el && el.querySelector && el.querySelector('.card,.tpl,.big,pre'));
-    });
+    };
+    var any=ids.some(has);
     document.body.classList.toggle('nores',!any);
+    /* 复制按钮按「自己那一栏有没有结果」显示。
+       原来靠 body.nores 一刀切：三个页面只要有任意一个出过结果，另外两栏空着也照样显示按钮，
+       点下去只能复制到一段空文本。 */
+    [['resCopy','errOut'],['chkCopy','chkOut'],['intCopy','intOut']].forEach(function(p){
+      var b=document.getElementById(p[0]), o=document.getElementById(p[1]);
+      if(!b || !o || !b.style) return;
+      b.style.visibility=has(p[1])?'':'hidden';
+    });
   }
   document.addEventListener('click',function(e){
     if(e.target && e.target.closest &&
        e.target.closest('.act.main,.act,.chip,#clr,#clr2,#clr3')) setTimeout(sync,30);
   });
-  [['resCopy','errOut'],['chkCopy','chkOut']].forEach(function(p){
+  [['resCopy','errOut'],['chkCopy','chkOut'],['intCopy','intOut']].forEach(function(p){
     var b=document.getElementById(p[0]); if(!b || !b.addEventListener) return;
     b.addEventListener('click',function(){
       var out=document.getElementById(p[1]);
@@ -646,6 +660,15 @@ runUrlParams();
   var title=document.getElementById('introTitle');
   var h1=document.querySelector('.topbar h1');
   if(!intro || !title || !h1) return;
+  /* 三种情况直接跳过这 2.5 秒片头：
+     ① 外部程序带 ?t=/?c= 打开（机器调用，最要紧的一条）
+     ② 本次会话已经看过一遍（刷新、切标签页回来不再重放）
+     ③ 系统开了「减少动态效果」
+     注意：跳过时绝不能加 pre-intro —— 那个类会把 topbar/nav/main 藏起来等动画，没人去撤就整页空白。 */
+  var seen=false; try{ seen=sessionStorage.getItem('ceh.introPlayed')==='1'; }catch(e){}
+  var calm=false; try{ calm=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches; }catch(e){}
+  if(AUTO_OPEN || seen || calm){ intro.remove(); return; }
+  try{ sessionStorage.setItem('ceh.introPlayed','1'); }catch(e){}
   document.body.classList.add('pre-intro');
   setTimeout(function(){
     var r=h1.getBoundingClientRect();
@@ -663,4 +686,65 @@ runUrlParams();
       },600);
     },800);
   },1100);
+})();
+
+/* ---------- 键盘提交 ----------
+   写代码的人手不离开键盘：定积分三个输入框里按 Enter 直接算；
+   textarea 里 Enter 是换行，所以配 Ctrl+Enter 才提交。 */
+(function(){
+  function bindEnter(sel,btnSel,needCtrl){
+    var btn=document.querySelector(btnSel);
+    if(!btn || !document.querySelectorAll) return;
+    document.querySelectorAll(sel).forEach(function(el){
+      el.addEventListener('keydown',function(e){
+        if(e.key!=='Enter' && e.keyCode!==13) return;
+        var mod=e.ctrlKey||e.metaKey;
+        if(needCtrl? !mod : mod) return;
+        e.preventDefault();
+        btn.click();
+      });
+    });
+  }
+  bindEnter('#fx,#ia,#ib','#doInt',false);
+  bindEnter('#errIn,#codeIn2','#doErr',true);
+  bindEnter('#codeIn','#doChk',true);
+})();
+
+/* ---------- 主题切换（深 / 浅）----------
+   初始值在 index.html 里的内联脚本定好了（必须早于样式表要求渲染，否则闪浅色）；
+   这里只管点按：切一次就写进 localStorage，之后不再跟随系统。 */
+(function(){
+  var btn=document.getElementById('themeTgl');
+  if(!btn) return;
+  var KEY='ceh.theme';
+  var sun='<svg class="ic2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>';
+  var moon='<svg class="ic2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>';
+  var ic=document.getElementById('themeIc'), txt=document.getElementById('themeTxt'), sub=document.getElementById('themeSub');
+  function stored(){ try{ return localStorage.getItem(KEY); }catch(e){ return null; } }
+  function isDark(){ return document.documentElement.classList.contains('dark'); }
+  function paint(){
+    var d=isDark(), t=stored();
+    document.documentElement.setAttribute('data-theme',t||'auto');
+    if(ic) ic.innerHTML=d?sun:moon;              // 图标显示的是「现在是什么」：亮着太阳=当前浅色
+    if(txt) txt.textContent=d?'浅色模式':'深色模式';
+    if(sub) sub.textContent=t?('已设为'+(d?'深色':'浅色')):'跟随系统';
+    btn.setAttribute('aria-pressed',d?'true':'false');
+    btn.title='当前'+(d?'深色':'浅色')+'（'+(t?'已手动设置':'跟随系统')+'），点击切换';
+  }
+  btn.addEventListener('click',function(){
+    var d=!isDark();
+    document.documentElement.classList.toggle('dark',d);
+    try{ localStorage.setItem(KEY,d?'dark':'light'); }catch(e){}
+    paint();
+  });
+  // 还是「跟随系统」时，系统主题变了要跟着变
+  try{
+    var mq=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)');
+    if(mq&&mq.addEventListener) mq.addEventListener('change',function(e){
+      if(stored()) return;
+      document.documentElement.classList.toggle('dark',e.matches);
+      paint();
+    });
+  }catch(e){}
+  paint();
 })();
