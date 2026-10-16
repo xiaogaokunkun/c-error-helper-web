@@ -406,3 +406,11 @@ mark.fw{background:var(--errbg);border:1px solid var(--err);
   .app{padding-top:84px}   /* 窄屏横幅 68px 高 + 16px 间距 */
   .nav{top:0}
 }
+/* 触屏设备：JS 里液体填充动画被禁用，这里恢复静态高亮（深蓝底白字），
+   选中项永远清晰、高亮与内容同步 */
+@media (hover: none) and (pointer: coarse){
+  .tab.on{color:#fff;background:var(--ink);font-weight:600}
+  .tab.on .ic{color:#fff}
+  .tab.leaving,.tab.on.waiting{color:#fff}
+  .tab{transition:none}
+}

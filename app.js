@@ -532,6 +532,9 @@ runUrlParams();
      窄屏 = 导航横排（flex row + wrap）→ 流向是 x（两股流从上/下边进来、往右灌）
    之前写死成"上下动"，所以在手机上不仅看不见液体流，选项之间也根本过不去。 */
 (function(){
+  // 触屏设备（手机/平板）：液体动画靠 setTimeout 收尾，移动端浏览器会节流它，
+  // 卡住后选中项白字压在浅底上、高亮和内容不同步。触屏下禁用动画，改用 CSS 静态高亮。
+  if(typeof matchMedia==='function' && matchMedia('(hover: none) and (pointer: coarse)').matches) return;
   var list=document.querySelector('.navlist'); if(!list || !list.querySelectorAll) return;
   var tabs=[].slice.call(list.querySelectorAll('.tab'));
   if(!tabs.length || !tabs[0].getBoundingClientRect) return;
