@@ -187,6 +187,7 @@ $('#doErr').onclick=()=>{
   const c=$('#codeIn2').value;
   $('#errOut').innerHTML = v? translate(v, c)
     : '<div class="empty">先把报错粘进去 ↑</div>';
+  if(v && window.histPush) window.histPush(v, c);   // 记一笔，下次同一个错不用重新复制
 };
 $('#paste').onclick=function(){
   var btn=this, old=btn.textContent;
@@ -409,9 +410,6 @@ $('#doInt').onclick=()=>{
 };
 $('#clr3').onclick=()=>{$('#intOut').innerHTML='';};
 
-/* ---------- 逻辑坑渲染 ---------- */
-$('#logList').innerHTML=LOGIC.map(o=>'<div class="card w"><h3>'+o.n+'</h3>'
-  +'<div class="why">'+o.why+'</div><ul class="fix">'+o.fix.map(f=>'<li>'+f+'</li>').join('')+'</ul></div>').join('');
 
 $('#cnt').textContent=RULES.length;
 $('#errOut').innerHTML='<div class="empty">把报错粘进去，点「翻译一下」</div>';
@@ -489,6 +487,8 @@ runUrlParams();
       if(!b || !o || !b.style) return;
       b.style.visibility=has(p[1])?'':'hidden';
     });
+    var rl=document.getElementById('resLink');     // 「复制链接」跟着报错翻译的结果一起出现
+    if(rl && rl.style) rl.style.visibility=has('errOut')?'':'hidden';
   }
   document.addEventListener('click',function(e){
     if(e.target && e.target.closest &&
@@ -746,5 +746,142 @@ runUrlParams();
       paint();
     });
   }catch(e){}
+  paint();
+})();
+
+/* ---------- 规则库：36 条编译报错 + 8 条逻辑坑，可搜可筛 ----------
+   这 44 条原来只有两种看法：粘对报错才弹出对应那条，或者去翻一页只读列表。
+   现在按关键词搜（中英文都行 —— 每条的关键词表也算进搜索文本）。 */
+(function(){
+  var list=document.getElementById('ruleList');
+  if(!list) return;
+  var q=document.getElementById('ruleQ');
+  var cats=document.getElementById('ruleCats');
+  var cnt=document.getElementById('ruleCount');
+  var ITEMS=RULES.map(function(r){
+    return {kind:'rule',sev:r.s,n:r.n,why:r.why||'',fix:r.fix||[],code:r.code||'',keys:(r.k||[]).join(' / ')};
+  }).concat(LOGIC.map(function(o){
+    return {kind:'log',sev:'log',n:o.n,why:o.why||'',fix:o.fix||[],code:o.code||'',keys:''};
+  }));
+  // 搜索文本：先去标签再拼，否则 <code> 里的字搜不到
+  ITEMS.forEach(function(it){
+    it.blob=(stripTags(it.n)+' '+stripTags(it.why)+' '+it.fix.map(stripTags).join(' ')
+             +' '+stripTags(it.code)+' '+it.keys).toLowerCase();
+  });
+  var cat='all';
+  function render(){
+    var kw=(q&&q.value||'').trim().toLowerCase();
+    var words=kw?kw.split(/\s+/) : [];
+    var hit=ITEMS.filter(function(it){
+      if(cat==='log' && it.kind!=='log') return false;
+      if((cat==='e'||cat==='w') && !(it.kind==='rule'&&it.sev===cat)) return false;
+      return words.every(function(w){ return it.blob.indexOf(w)>=0; });
+    });
+    if(cnt) cnt.textContent = hit.length
+      ? ('命中 '+hit.length+' 条'+(kw?('（搜「'+kw+'」）'):''))
+      : '没搜到。换个词试试：「分号」「括号」「scanf」「越界」「初始化」';
+    if(!hit.length){ list.innerHTML=''; return; }
+    list.innerHTML=hit.map(function(it){
+      var b=it.kind==='log'?'w':it.sev;
+      var tag=it.kind==='log'?'逻辑坑':badge(it.sev);
+      return '<details class="card '+b+'"><summary><h3>'+it.n
+        +'<span class="badge '+b+'">'+tag+'</span></h3></summary>'
+        +'<div class="why">'+it.why+'</div>'
+        +(it.fix.length?'<ul class="fix">'+it.fix.map(function(f){return '<li>'+f+'</li>';}).join('')+'</ul>':'')
+        +(it.code?tplBlock(it.code):'')
+        +(it.keys?'<div class="say">命中关键词：<code>'+esc(it.keys)+'</code></div>':'')
+        +'</details>';
+    }).join('');
+  }
+  var t=null;
+  if(q) q.addEventListener('input',function(){      // 44 条重建有点重，输入时防抖一下
+    clearTimeout(t); t=setTimeout(render,120);
+  });
+  if(cats) cats.addEventListener('click',function(e){
+    var b=e.target.closest && e.target.closest('.chip');
+    if(!b) return;
+    [].forEach.call(cats.querySelectorAll('.chip'),function(c){c.classList.toggle('on',c===b);});
+    cat=b.getAttribute('data-c')||'all';
+    render();
+  });
+  render();
+})();
+
+/* ---------- 复制成链接 ----------
+   ?t=<base64>&c=<base64> 这套参数本来就有（桌面「报错急救」按快捷键时就是这么打开页面的），
+   只是页面上一直没入口。现在点一下就能生成 —— 把这条报错连解释一起发给同学。 */
+function b64uEnc(str){
+  try{
+    var b=encodeURIComponent(String(str)).replace(/%([0-9A-F]{2})/g,
+      function(_,h){ return String.fromCharCode(parseInt(h,16)); });
+    return btoa(b).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  }catch(e){ return ''; }
+}
+(function(){
+  var btn=document.getElementById('resLink');
+  if(!btn) return;
+  btn.addEventListener('click',function(){
+    if(location.protocol==='file:'){        // 离线双击打开的页面，链接发给别人打不开
+      btn.textContent='离线打开没有可分享的网址';
+      setTimeout(function(){ btn.textContent='复制链接'; },1900);
+      return;
+    }
+    var t=document.getElementById('errIn').value.trim();
+    var c=document.getElementById('codeIn2').value.trim();
+    if(!t && !c) return;
+    var trimmed=false;
+    if(c.length>1200){ c=''; trimmed=true; }   // 链接太长微信 / QQ 会截断，代码就先不带
+    var url=location.origin+location.pathname+'?t='+b64uEnc(t)+(c?('&c='+b64uEnc(c)):'');
+    var done=function(ok){
+      btn.textContent = ok ? (trimmed?'已复制（太长，没带代码）':'已复制链接 ✓') : '复制失败，手动复制地址栏';
+      setTimeout(function(){ btn.textContent='复制链接'; },1900);
+    };
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(function(){done(true);},function(){done(legacyCopy(url));});
+    } else done(legacyCopy(url));
+  });
+})();
+
+/* ---------- 最近查过（只写 localStorage，不联网） ----------
+   同一个错犯第二次时，不用重新去 Dev-C++ 里复制一遍。 */
+(function(){
+  var KEY='ceh.hist', MAX=8;
+  var wrap=document.getElementById('histWrap'), list=document.getElementById('histList');
+  if(!wrap || !list) return;
+  function load(){ try{ return JSON.parse(localStorage.getItem(KEY)||'[]')||[]; }catch(e){ return []; } }
+  function save(a){ try{ localStorage.setItem(KEY,JSON.stringify(a)); }catch(e){} }
+  function label(v){
+    var t=stripTags(String(v||'').split('\n')[0]).replace(/\s+/g,' ').trim();
+    if(!t) return '（没写内容）';
+    return t.length>32 ? (t.slice(0,32)+'…') : t;
+  }
+  function paint(){
+    var a=load();
+    if(!a.length){ wrap.hidden=true; list.innerHTML=''; return; }
+    wrap.hidden=false;
+    list.innerHTML=a.map(function(it,i){
+      return '<button type="button" class="chip" data-i="'+i+'">'+esc(label(it.t))+'</button>';
+    }).join('')+'<button type="button" class="chip" data-clr="1" title="清掉这些记录">清空记录</button>';
+  }
+  window.histPush=function(raw,code){
+    raw=String(raw||'').trim(); code=String(code||'').trim();
+    if(!raw && !code) return;
+    var a=load().filter(function(it){ return !(it.raw===raw && it.c===code); });
+    a.unshift({t:raw||code, raw:raw, c:code});
+    save(a.slice(0,MAX)); paint();
+  };
+  list.addEventListener('click',function(e){
+    var b=e.target.closest && e.target.closest('button');
+    if(!b) return;
+    if(b.getAttribute('data-clr')){ save([]); paint(); return; }
+    var it=load()[+b.getAttribute('data-i')];
+    if(!it) return;
+    // 只存了代码的那种，得先把输入区切到「代码」格，否则他填进去了也看不见
+    var seg=document.querySelector('#inSeg .segb[data-f="'+((!it.raw&&it.c)?'code':'err')+'"]');
+    if(seg) seg.click();
+    document.getElementById('errIn').value=it.raw||'';
+    document.getElementById('codeIn2').value=it.c||'';
+    var nd=document.getElementById('doErr'); if(nd) nd.click();
+  });
   paint();
 })();

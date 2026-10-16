@@ -451,3 +451,13 @@ body.intro-done .main{animation:elBottom .7s cubic-bezier(.22,1,.36,1) .2s both}
 @keyframes elTop{from{opacity:0;transform:translateY(-22px)}to{opacity:1;transform:none}}
 @keyframes elLeft{from{opacity:0;transform:translateX(-46px)}to{opacity:1;transform:none}}
 @keyframes elBottom{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:none}}
+
+/* ---------- 最近查过（本地历史，写在输入框下面） ---------- */
+.hist{margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--line)}
+.hist .chips{margin:var(--s2) 0 0}
+.hist .chip{max-width:100%;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---------- 规则库：搜索 + 分类 ---------- */
+#ruleQ{margin:var(--s2) 0 0}
+#ruleCats{margin:var(--s2) 0 var(--s1)}
+#ruleList details{margin-top:var(--s2)}

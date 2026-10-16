@@ -97,7 +97,7 @@ console.log('规则条数 RULES.length =', vm.runInContext('RULES.length', ctx))
 console.log('逻辑坑 LOGIC.length =', vm.runInContext('LOGIC.length', ctx));
 console.log('#cnt 文案 =', el('#cnt').textContent);
 console.log('#errOut 初始渲染 =', strip(el('#errOut').innerHTML).slice(0, 60));
-console.log('#logList 初始渲染长度 =', el('#logList').innerHTML.length);
+console.log('#ruleList 初始渲染长度 =', el('#ruleList').innerHTML.length);
 ok('#doErr 绑定', typeof el('#doErr').onclick === 'function');
 ok('#doChk 绑定', typeof el('#doChk').onclick === 'function');
 ok('#doInt 绑定', typeof el('#doInt').onclick === 'function');
