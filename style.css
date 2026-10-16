@@ -414,3 +414,42 @@ mark.fw{background:var(--errbg);border:1px solid var(--err);
   .tab.leaving,.tab.on.waiting{color:#fff}
   .tab{transition:none}
 }
+/* ---------- 启动动画 ----------
+   流程：深色全屏 → 标题逐字弹出 → 标题移到左上角（跟真实 h1 重合）
+        → 顶部横幅 / 左栏 / 主内容从不同方向变速入场 → 全屏层淡出。 */
+.intro{position:fixed;inset:0;z-index:999;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse 90% 70% at 50% 42%, #e7f0ff 0%, #f5f8fd 50%, #ffffff 100%);
+  overflow:hidden;transition:opacity .55s ease}
+.intro::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(circle at 50% 50%, rgba(37,99,235,.14) 0%, rgba(37,99,235,.05) 40%, transparent 65%);
+  animation:glowIn 1.3s ease-out both}
+@keyframes glowIn{from{opacity:0}to{opacity:1}}
+.intro-title{display:flex;gap:.12em;font-size:clamp(40px,9vw,84px);font-weight:800;color:#1d4ed8;
+  letter-spacing:.04em;will-change:transform;transform-origin:left top;
+  text-shadow:0 2px 26px rgba(37,99,235,.18),0 0 70px rgba(37,99,235,.10)}
+.intro-title span{opacity:0;transform:translateY(32px) scale(.3);
+  animation:chIn .6s cubic-bezier(.22,1,.36,1) forwards}
+/* 深色模式：换成近黑底 + 白色发光标题（跟网页暗色配色一致） */
+@media (prefers-color-scheme:dark){
+  .intro{background:radial-gradient(ellipse 90% 70% at 50% 42%, #1b2a5e 0%, #101a38 48%, #070a14 100%)}
+  .intro::before{background:radial-gradient(circle at 50% 50%, rgba(90,130,255,.20) 0%, rgba(90,130,255,.06) 40%, transparent 65%)}
+  .intro-title{color:#fff;text-shadow:0 0 28px rgba(120,160,255,.6),0 0 90px rgba(80,120,255,.35)}
+}
+.intro-title span:nth-child(1){animation-delay:.05s}
+.intro-title span:nth-child(2){animation-delay:.13s}
+.intro-title span:nth-child(3){animation-delay:.21s}
+.intro-title span:nth-child(4){animation-delay:.29s}
+.intro-title span:nth-child(5){animation-delay:.37s}
+.intro-title span:nth-child(6){animation-delay:.45s}
+.intro-title span:nth-child(7){animation-delay:.53s}
+.intro-title span:nth-child(8){animation-delay:.61s}
+@keyframes chIn{to{opacity:1;transform:translateY(0) scale(1)}}
+.intro-title.moving{transition:transform .85s cubic-bezier(.55,0,.2,1)}
+/* 开场阶段：真实页面元素先藏起来，等标题到位后从各方向进场 */
+body.pre-intro .topbar,body.pre-intro .nav,body.pre-intro .main{opacity:0}
+body.intro-done .topbar{animation:elTop .6s ease-out both}
+body.intro-done .nav{animation:elLeft .65s cubic-bezier(.22,1,.36,1) .12s both}
+body.intro-done .main{animation:elBottom .7s cubic-bezier(.22,1,.36,1) .2s both}
+@keyframes elTop{from{opacity:0;transform:translateY(-22px)}to{opacity:1;transform:none}}
+@keyframes elLeft{from{opacity:0;transform:translateX(-46px)}to{opacity:1;transform:none}}
+@keyframes elBottom{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:none}}

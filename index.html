@@ -7,6 +7,10 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body class="nores">
+<!-- 启动动画：标题逐字弹出 → 移到左上角 → 其余元素从不同方向变速入场 -->
+<div class="intro" id="intro" aria-hidden="true">
+  <div class="intro-title" id="introTitle"><span>C</span><span>语</span><span>言</span><span>报</span><span>错</span><span>翻</span><span>译</span><span>器</span></div>
+</div>
 <!-- goo 滤镜：模糊 + 把 alpha 拉爆，圆角就被"糊"成液体的鼓包，两个块靠近时会自己黏在一起 -->
 <svg class="svgdefs" width="0" height="0" aria-hidden="true" focusable="false">
   <defs>

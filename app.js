@@ -637,3 +637,30 @@ runUrlParams();
   window.__ink={go:go, rest:rest, rel:rel, vertical:vertical, setDur:function(t){T=t;},
     get dur(){return T}, get cur(){return cur}, get phase(){return phase}};
 })();
+
+/* ---------- 启动动画 ----------
+   标题逐字弹出（CSS stagger）→ 移到左上角（跟真实 h1 重合）
+   → 顶部横幅 / 左栏 / 主内容从不同方向变速入场 → 全屏层淡出。 */
+(function(){
+  var intro=document.getElementById('intro');
+  var title=document.getElementById('introTitle');
+  var h1=document.querySelector('.topbar h1');
+  if(!intro || !title || !h1) return;
+  document.body.classList.add('pre-intro');
+  setTimeout(function(){
+    var r=h1.getBoundingClientRect();
+    var tr=title.getBoundingClientRect();
+    var s=r.height/tr.height;
+    title.classList.add('moving');
+    title.style.transform='translate('+(r.left-tr.left)+'px,'+(r.top-tr.top)+'px) scale('+s+')';
+    document.body.classList.remove('pre-intro');
+    document.body.classList.add('intro-done');
+    setTimeout(function(){
+      intro.style.opacity='0';
+      setTimeout(function(){
+        intro.remove();
+        document.body.classList.remove('intro-done');
+      },600);
+    },800);
+  },1100);
+})();
