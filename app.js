@@ -414,7 +414,7 @@ $('#errOut').innerHTML='<div class="empty">把报错粘进去，点「翻译一�
 /* ---------- 反馈 ---------- */
 /* 想让用户直接发邮件/加 QQ，把联系方式填在这里（例：'xiaogao@qq.com'）；留空则只提示"发我" */
 const FB_CONTACT='';
-const FB_VER='2026-10-15';
+const FB_VER='2026-10-16';
 function fbScrub(s){
   return String(s||'')
     .replace(/[A-Za-z]:[\\/][^\s:'"<>|]*/g,'<路径>')
@@ -466,3 +466,171 @@ $('#fbClr').onclick=function(){
 
 /* 注意：必须放在所有初始化之后 —— 否则会被上面那行的初始文案覆盖 */
 runUrlParams();
+
+(function(){
+  var ids=['errOut','chkOut','intOut'];
+  function sync(){
+    var any=ids.some(function(id){
+      var el=document.getElementById(id);
+      return !!(el && el.querySelector && el.querySelector('.card,.tpl,.big,pre'));
+    });
+    document.body.classList.toggle('nores',!any);
+  }
+  document.addEventListener('click',function(e){
+    if(e.target && e.target.closest &&
+       e.target.closest('.act.main,.act,.chip,#clr,#clr2,#clr3')) setTimeout(sync,30);
+  });
+  [['resCopy','errOut'],['chkCopy','chkOut']].forEach(function(p){
+    var b=document.getElementById(p[0]); if(!b || !b.addEventListener) return;
+    b.addEventListener('click',function(){
+      var out=document.getElementById(p[1]);
+      var t=(out.innerText||'').trim();
+      navigator.clipboard.writeText(t).then(function(){
+        var old=b.textContent; b.textContent='已复制';
+        setTimeout(function(){b.textContent=old;},1200);
+      }).catch(function(){});
+    });
+  });
+  if(typeof MutationObserver!=='undefined'){
+    new MutationObserver(sync).observe(document.body,{childList:true,subtree:true});
+  }
+  sync();
+})();
+
+/* ===== 报错翻译：输入区「报错原文 / 代码」切换 =====
+   两块 textarea 都留在 DOM 里（app.js 两个 id 都要读），只是轮流显示，
+   所以不用改 app.js。 */
+(function(){
+  var wrap=document.getElementById('inWrap'), seg=document.getElementById('inSeg');
+  if(!wrap || !seg || !seg.querySelectorAll) return;
+  var lb=document.getElementById('fhLabel'), hh=document.getElementById('fhHint');
+  var TXT={err:['报错原文','把 Dev-C++ 里那排红字整段粘进来'],
+           code:['代码','粘整段代码，结果里会带出出错的那一行']};
+  var bs=[].slice.call(seg.querySelectorAll('.segb'));
+  bs.forEach(function(b){
+    b.addEventListener('click', function(){
+      var fd=b.getAttribute('data-f'); if(!fd || !TXT[fd]) return;
+      wrap.setAttribute('data-field', fd);
+      bs.forEach(function(x){ var on=(x===b);
+        x.classList.toggle('on', on); x.setAttribute('aria-pressed', on?'true':'false'); });
+      if(lb) lb.textContent=TXT[fd][0];
+      if(hh) hh.textContent=TXT[fd][1];
+      var t=document.getElementById(fd==='err'?'errIn':'codeIn2');
+      if(t && t.focus) t.focus();
+    });
+  });
+})();
+
+/* ===== 液体填充 =====
+   目标按钮的填充方式（按他 01:07 的说法）：液体从**两边**进来，在**中间汇合**，再**灌满**。
+   四个形状一起演（都在 .inkgoo 里，goo 滤镜把挨着的形状黏成一股）：
+     S  = 旧按钮那块：朝流向那一头抽干
+     P1/P2 = 新按钮上的一对水流：从"垂直于流向"的两条边各长一半，在中间合上
+     B  = 本体：两条流合上后，沿流向灌满
+   ⚠️ 方向必须跟着布局走（2026-10-16 01:2x 修的 bug）：
+     桌面 = 导航竖排 → 流向是 y（两股流从上/下边进来？不，是从左/右边进来、往下灌）
+     窄屏 = 导航横排（flex row + wrap）→ 流向是 x（两股流从上/下边进来、往右灌）
+   之前写死成"上下动"，所以在手机上不仅看不见液体流，选项之间也根本过不去。 */
+(function(){
+  var list=document.querySelector('.navlist'); if(!list || !list.querySelectorAll) return;
+  var tabs=[].slice.call(list.querySelectorAll('.tab'));
+  if(!tabs.length || !tabs[0].getBoundingClientRect) return;
+
+  var layer=document.createElement('span'); layer.className='inkgoo';
+  function mk(c){ var e=document.createElement('span'); e.className='ink '+c;
+    e.setAttribute('aria-hidden','true'); layer.appendChild(e); return e; }
+  var S=mk('inkS'), P1=mk('inkP'), P2=mk('inkP'), B=mk('inkB');
+  list.insertBefore(layer, list.firstChild);
+
+  var T=380, cur=0, phase='rest';
+  var ES='cubic-bezier(.45,0,.55,1)';       // 旧项抽干
+  var E1='cubic-bezier(.4,0,.4,1)';         // 两条水流从两边进来
+  var E2='cubic-bezier(.45,0,.55,1)';       // 灌满
+  var reduce = typeof matchMedia==='function' && matchMedia('(prefers-reduced-motion:reduce)').matches;
+  tabs.forEach(function(t,i){ if(t.classList.contains('on')) cur=i; });
+
+  /* 导航是竖排还是横排：比较前两项的位移，哪个方向大就是哪个 */
+  function vertical(){
+    if(tabs.length<2) return true;
+    var a=tabs[0].getBoundingClientRect(), b=tabs[1].getBoundingClientRect();
+    return Math.abs(b.top-a.top) >= Math.abs(b.left-a.left);
+  }
+  function rel(i){
+    var r=tabs[i].getBoundingClientRect(), l=list.getBoundingClientRect();
+    return {x:r.left-l.left, y:r.top-l.top, w:r.width, h:r.height};
+  }
+  var tSrc=null, tDst=null;
+  function markText(src, dst){
+    clearTimeout(tSrc); clearTimeout(tDst);
+    tabs[src].classList.add('leaving');
+    tabs[dst].classList.add('waiting');
+    tSrc=setTimeout(function(){ tabs[src].classList.remove('leaving'); }, Math.round(T*0.5));
+    tDst=setTimeout(function(){ tabs[dst].classList.remove('waiting'); },  Math.round(T*0.62));
+  }
+  function place(e, r, tr){
+    e.style.transition = tr || 'none';
+    e.style.left=r.x+'px'; e.style.top=r.y+'px'; e.style.width=r.w+'px'; e.style.height=r.h+'px';
+  }
+  function rest(){
+    place(S, rel(cur));
+    var z=rel(cur);
+    place(P1,{x:z.x,y:z.y,w:0,h:0}); place(P2,{x:z.x,y:z.y,w:0,h:0}); place(B,{x:z.x,y:z.y,w:0,h:0});
+    phase='rest';
+  }
+  function go(i){
+    if(typeof i!=='number' || i<0 || i===cur || i>=tabs.length) return;
+    var A=rel(cur), G=rel(i), from=cur;
+    var vert=vertical();
+    var fwd = vert ? (G.y >= A.y) : (G.x >= A.x);      // 目标在流向的正向
+    cur=i;
+    tabs.forEach(function(t,k){ if(k!==i) t.classList.remove('on'); });
+    tabs[i].classList.add('on');
+    markText(from, i);
+    if(reduce){ rest(); tabs[from].classList.remove('leaving'); tabs[i].classList.remove('waiting'); return; }
+
+    /* ① 起跑线 */
+    place(S, A); place(P1, G); place(P2, G); place(B, G);
+    // 两条水流和本体先从"零"起：
+    var band = Math.max(10, Math.round((vert ? G.h : G.w) * 0.4));
+    var p1s, p1e, p2s, p2e, bS, bE;
+    if(vert){                                   // 竖排：水流从左/右边进，往下/上灌
+      p1s={x:G.x,       y:G.y, w:0,       h:band};  p1e={x:G.x,        y:G.y, w:G.w/2, h:band};
+      p2s={x:G.x+G.w,   y:G.y, w:0,       h:band};  p2e={x:G.x+G.w/2,  y:G.y, w:G.w/2, h:band};
+      bS ={x:G.x, y:(fwd?G.y:G.y+G.h), w:G.w, h:0};
+      bE ={x:G.x, y:G.y,               w:G.w, h:G.h};
+    }else{                                      // 横排：水流从上/下边进，往右/左灌
+      p1s={x:G.x, y:G.y,       w:band, h:0};       p1e={x:G.x, y:G.y,       w:band, h:G.h/2};
+      p2s={x:G.x, y:G.y+G.h,   w:band, h:0};       p2e={x:G.x, y:G.y+G.h/2, w:band, h:G.h/2};
+      bS ={x:(fwd?G.x:G.x+G.w), y:G.y, w:0,      h:G.h};
+      bE ={x:G.x,               y:G.y, w:G.w,    h:G.h};
+    }
+    var sEnd = {x:A.x, y:A.y, w:A.w, h:A.h};
+    if(vert){ sEnd.h=0; sEnd.y = fwd ? A.y+A.h : A.y; }
+    else    { sEnd.w=0; sEnd.x = fwd ? A.x+A.w : A.x; }
+    place(P1,p1s); place(P2,p2s); place(B,bS);
+    void P1.offsetWidth;                        // 强制回流，先落定起始状态
+    phase='flow';
+    place(S,  sEnd, 'left '+T+'ms '+ES+', top '+T+'ms '+ES+', width '+T+'ms '+ES+', height '+T+'ms '+ES);
+    place(P1, p1e, 'left '+Math.round(T*0.45)+'ms '+E1+', top '+Math.round(T*0.45)+'ms '+E1
+                 +', width '+Math.round(T*0.45)+'ms '+E1+', height '+Math.round(T*0.45)+'ms '+E1);
+    place(P2, p2e, 'left '+Math.round(T*0.45)+'ms '+E1+', top '+Math.round(T*0.45)+'ms '+E1
+                 +', width '+Math.round(T*0.45)+'ms '+E1+', height '+Math.round(T*0.45)+'ms '+E1);
+    place(B,  bE,  'left '+Math.round(T*0.55)+'ms '+E2+' '+Math.round(T*0.45)+'ms, top '
+                 +Math.round(T*0.55)+'ms '+E2+' '+Math.round(T*0.45)+'ms, width '
+                 +Math.round(T*0.55)+'ms '+E2+' '+Math.round(T*0.45)+'ms, height '
+                 +Math.round(T*0.55)+'ms '+E2+' '+Math.round(T*0.45)+'ms');
+    /* 收尾必须清状态类：只靠中间那两个定时器，标签页被节流时会留下 waiting
+       （= 选中项一直灰字压深蓝） */
+    setTimeout(function(){
+      tabs[from].classList.remove('leaving'); tabs[i].classList.remove('waiting');
+      rest();
+    }, T+40);
+  }
+  tabs.forEach(function(t,i){ t.addEventListener('click', function(){ go(i); }); });
+  if(typeof window.addEventListener==='function'){
+    window.addEventListener('resize', function(){ if(phase==='rest') rest(); });
+  }
+  rest();
+  window.__ink={go:go, rest:rest, rel:rel, vertical:vertical, setDur:function(t){T=t;},
+    get dur(){return T}, get cur(){return cur}, get phase(){return phase}};
+})();

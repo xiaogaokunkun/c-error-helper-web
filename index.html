@@ -6,7 +6,22 @@
 <title>C 语言报错翻译器 · 大一作业急救箱</title>
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="nores">
+<!-- goo 滤镜：模糊 + 把 alpha 拉爆，圆角就被"糊"成液体的鼓包，两个块靠近时会自己黏在一起 -->
+<svg class="svgdefs" width="0" height="0" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="goo" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="b"/>
+      <feColorMatrix in="b" mode="matrix"
+        values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 14 -6" result="g"/>
+      <feComposite in="SourceGraphic" in2="g" operator="atop"/>
+    </filter>
+  </defs>
+</svg>
+<div class="bg" aria-hidden="true"><b><i></i><i></i><i></i><i></i><i></i><i></i></b></div>
+<header class="topbar">
+  <div class="topinner"><h1>C 语言报错翻译器</h1></div>
+</header>
 <div class="app">
   <aside class="nav" id="nav">
     <div class="navhead">
@@ -14,45 +29,65 @@
       <button class="navtoggle" id="navToggle" type="button" aria-expanded="true" title="收起 / 展开左栏">⇤</button>
     </div>
     <nav class="navlist">
-      <button class="tab on" data-p="err" type="button" title="报错翻译"><span class="ic">🔧</span><span class="tx">报错翻译</span></button>
-      <button class="tab" data-p="chk" type="button" title="代码体检"><span class="ic">🔍</span><span class="tx">代码体检</span></button>
-      <button class="tab" data-p="int" type="button" title="定积分计算"><span class="ic">∫</span><span class="tx">定积分计算</span></button>
-      <button class="tab" data-p="log" type="button" title="不报错但结果错"><span class="ic">🐞</span><span class="tx">不报错但结果错</span></button>
-      <button class="tab" data-p="fb" type="button" title="反馈"><span class="ic">💬</span><span class="tx">反馈</span></button>
+      <button class="tab on" data-p="err" type="button" title="报错翻译"><span class="ic svgi"><svg class="ic2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/></svg></span><span class="tx">报错翻译</span></button>
+      <button class="tab" data-p="chk" type="button" title="代码体检"><span class="ic svgi"><svg class="ic2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m8 11 2 2 4-4"/><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span><span class="tx">代码体检</span></button>
+      <button class="tab" data-p="int" type="button" title="定积分计算"><span class="ic svgi"><svg class="ic2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 4.6c-2.7-.6-4.3.9-4.8 3.5l-2.4 12.4c-.5 2.6-2.1 4.1-4.8 3.5"/></svg></span><span class="tx">定积分计算</span></button>
+      <button class="tab" data-p="log" type="button" title="不报错但结果错"><span class="ic svgi"><svg class="ic2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-9"/><path d="M14 7a4 4 0 0 1 4 4v3a6 6 0 0 1-12 0v-3a4 4 0 0 1 4-4z"/><path d="M14.12 3.88 16 2"/><path d="M21 21a4 4 0 0 0-3.81-4"/><path d="M21 5a4 4 0 0 1-3.55 3.97"/><path d="M22 13h-4"/><path d="M3 21a4 4 0 0 1 3.81-4"/><path d="M3 5a4 4 0 0 0 3.55 3.97"/><path d="M6 13H2"/><path d="m8 2 1.88 1.88"/><path d="M9 7.13V6a3 3 0 1 1 6 0v1.13"/></svg></span><span class="tx">不报错但结果错</span></button>
+      <button class="tab" data-p="fb" type="button" title="反馈"><span class="ic svgi"><svg class="ic2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/><path d="M12 11h.01"/><path d="M16 11h.01"/><path d="M8 11h.01"/></svg></span><span class="tx">反馈</span></button>
     </nav>
     <div class="navmore">
       <a class="navlink" href="https://marketplace.visualstudio.com/items?itemName=xiaogaokunkun.c-error-helper" target="_blank" rel="noopener" title="VS Code 扩展市场：C语言报错翻译器（在新标签页打开）">
-        <span class="ic">🧩</span>
+        <span class="ic svgi"><svg class="ic2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z"/></svg></span>
         <span class="tx"><b>VS Code 版</b><small>中文报错翻译插件</small></span>
       </a>
       <a class="navlink" href="https://github.com/xiaogaokunkun/c-error-helper-web" target="_blank" rel="noopener" title="GitHub 源码 / 提 issue（在新标签页打开）">
-        <span class="ic">⭐</span>
+        <span class="ic svgi"><svg class="ic2" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></span>
         <span class="tx"><b>GitHub</b><small>源码 / 提 issue</small></span>
       </a>
     </div>
   </aside>
 
   <main class="main">
-  <h1>C 语言报错翻译器</h1>
   <p class="sub">把 Dev-C++ / GCC 的报错原文粘进来 → 告诉你哪错了、怎么改。<strong>纯本地运行，不联网，不传代码。</strong></p>
 
-  <!-- ============ 1 报错翻译 ============ -->
+  <!-- ============ 1 报错翻译 ============
+       两栏：左边输入（报错原文 / 代码 两块共用一个位置，用左下角的切换按钮切），
+       右边：操作按钮在上、翻译结果在下。两栏顶端对齐。 -->
   <div class="pane on" id="p-err">
-    <textarea id="errIn" placeholder="把下面那排红色的字整段粘进来，例如：
+    <div class="work">
+      <div class="col-in" id="inWrap" data-field="err">
+        <div class="fieldhead"><b id="fhLabel">报错原文</b><span id="fhHint">把 Dev-C++ 里那排红字整段粘进来</span></div>
+        <textarea id="errIn" placeholder="把下面那排红色的字整段粘进来，例如：
 
 [Error] expected ';' before '}' token
 
 或者：
 main.c:12:5: error: 'sum' undeclared (first use in this function)"></textarea>
-    <label class="lbl2">↓ 可选：把<strong>代码</strong>也粘进来，清单里就会直接带出出错的那一行</label>
-    <textarea id="codeIn2" style="min-height:110px" placeholder="（可选）把整个 .c 文件内容粘在这里 —— 粘了它，我就能指出具体是哪个字符，比如把全角标点标红"></textarea>
-    <div class="row">
-      <button class="act main" id="doErr">翻译一下</button>
-      <button class="act" id="paste">读剪贴板</button>
-      <button class="act" id="demo">看个示例</button>
-      <button class="act" id="clr">清空</button>
+        <textarea id="codeIn2" placeholder="把整个 .c 文件内容粘在这里 —— 粘了它，我就能指出具体是哪个字符，比如把全角标点标红"></textarea>
+        <div class="togglerow">
+          <div class="seg" id="inSeg" role="group" aria-label="切换输入内容">
+            <button type="button" class="segb on" data-f="err" aria-pressed="true">报错原文</button>
+            <button type="button" class="segb" data-f="code" aria-pressed="false">代码</button>
+          </div>
+          <span class="seghint">两个框都能粘；粘了代码，清单里会直接带出出错的那一行</span>
+        </div>
+      </div>
+      <div class="col-out">
+        <div class="row">
+          <button class="act main" id="doErr">翻译一下</button>
+          <button class="act" id="paste">读剪贴板</button>
+          <button class="act" id="demo">看个示例</button>
+          <button class="act" id="clr">清空</button>
+        </div>
+        <section class="result">
+          <div class="reshead">
+            <h2>翻译结果<span class="hint">按「先改哪个」排序</span></h2>
+            <button class="act" id="resCopy" type="button">复制结果</button>
+          </div>
+          <div id="errOut"></div>
+        </section>
+      </div>
     </div>
-    <div id="errOut"></div>
   </div>
 
   <!-- ============ 2 代码体检 ============ -->
@@ -64,7 +99,13 @@ main.c:12:5: error: 'sum' undeclared (first use in this function)"></textarea>
       <button class="act" id="demo2">看个示例</button>
       <button class="act" id="clr2">清空</button>
     </div>
-    <div id="chkOut"></div>
+    <section class="result">
+      <div class="reshead">
+        <h2>体检结果</h2>
+        <button class="act" id="chkCopy" type="button">复制结果</button>
+      </div>
+      <div id="chkOut"></div>
+    </section>
   </div>
 
   <!-- ============ 3 定积分 ============ -->
@@ -80,7 +121,12 @@ main.c:12:5: error: 'sum' undeclared (first use in this function)"></textarea>
       <button class="act main" id="doInt">计算</button>
       <button class="act" id="clr3">清空结果</button>
     </div>
-    <div id="intOut"></div>
+    <section class="result">
+      <div class="reshead">
+        <h2>计算结果</h2>
+      </div>
+      <div id="intOut"></div>
+    </section>
     <details>
       <summary>支持哪些写法？</summary>
       <table>

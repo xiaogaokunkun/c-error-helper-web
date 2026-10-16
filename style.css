@@ -1,85 +1,183 @@
-/* C 语言报错翻译器 · 网页版 —— 样式 */
+/* C 语言报错翻译器 · 网页版 —— 样式（改后：视觉层）
+   ============================================================
+   这一版只做「视觉层」：刻度、层级、结果区的存在感。
+   功能逻辑、DOM 结构（除结果区多了一层外壳）、规则库 全部没动。
+   刻度：
+     字号  --t1 12 / --t2 13 / --t3 14 / --t4 16 / --t5 22   （原 8 档）
+     圆角  --r1 8  / --r2 12 / --r3 16 / --rpill           （原 7 档）
+     间距  --s1 4  / --s2 8 / --s3 12 / --s4 16 / --s5 24 / --s6 32 / --s7 48
+     阴影   --sh1 卡片 / --sh2 悬浮岛                        （原 1 档）
+   ============================================================ */
 :root{
-  --bg:#f6f7f9; --card:#fff; --fg:#1b1f24; --mut:#5f6b7a; --line:#e3e7ec;
-  --accent:#2f6feb; --err:#d1242f; --warn:#b7791f; --ok:#1a7f37;
+  --bg:#f6f7f9; --card:#fff; --fg:#171a1f; --mut:#333d49; --hint:#2b3442; --line:#e3e7ec;
+  --accent:#2563eb;        /* 主色；正文用色 */
+  --accent-ink:#1d4ed8;    /* 落在浅蓝底上的文字（对比度 5.99:1） */
+  --err:#cd3a3a;           /* 原来三套红：#d1242f / #ef4444 / rgba(239,68,68) 并成一套 */
+  --errbg:rgba(205,58,58,.18);
+  --warn:#a26b1b;
+  --ok:#1a7f37;
   --code:#f3f5f8;
+  --t1:12px; --t2:13px; --t3:14px; --t4:16px; --t5:22px;
+  --r1:8px; --r2:12px; --r3:16px; --rpill:999px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px;
+  --sh1:0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.04);
+  --sh2:0 12px 32px rgba(16,24,40,.10);
 }
 @media (prefers-color-scheme:dark){
-  :root{--bg:#0f1216;--card:#171b21;--fg:#e6e9ee;--mut:#9aa5b1;--line:#252b34;
-        --accent:#589bff;--err:#ff6b74;--warn:#e0b154;--ok:#4ac26b;--code:#1d222a;}
+  :root{--bg:#0f1216;--card:#171b21;--fg:#e6e9ee;--mut:#9aa5b1;--hint:#a6b2c0;--line:#252b34;
+        --accent:#5b93f5;--accent-ink:#7aa8ff;--err:#ff6b74;--errbg:rgba(255,107,116,.22);
+        --warn:#e0b154;--ok:#4ac26b;--code:#1d222a;
+        --sh1:0 1px 2px rgba(0,0,0,.45);--sh2:0 12px 32px rgba(0,0,0,.55)}
+  button.act.main,a.act.main{background:#4377c3;border-color:#4377c3} /* 原 #589bff 上白字只有 2.78:1 */
+  .empty{background:rgba(255,255,255,.02)}
+}
+/* ---------- 背景层次：左 → 右，斜着排，一片一片，边缘圆润 + 层间阴影 ----------
+   做法：不用渐变。6 张圆角竖色片，每张 width:32vw、位置每层右移 17vw，
+   所以每张只露出左边 17vw 一条；外面套一层 .bg b 整体旋转 +9°，边界就从左下往右上斜（像 /）。
+   每张左边缘带 box-shadow → 压在下面那张上，层次之间有高度差。
+   容器比视口大一圈（inset 负值），旋转后不会露出空角。 */
+html{background:var(--bg)}
+.bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg b{position:absolute;left:-40vw;right:-40vw;top:-45vh;bottom:-45vh;display:block;
+  transform:rotate(9deg)}
+.bg i{position:absolute;top:0;bottom:0;display:block;width:32vw;border-radius:44px;
+  box-shadow:-16px 5px 34px rgba(16,40,84,.24), -5px 2px 12px rgba(16,40,84,.16)}
+/* 变体 2（给 body 加 class="edge"）：色片上下各缩进来，圆角在视口里露出来 */
+/* 变体 3（身体加 class="edge"）：色片上下各缩 10vh，圆角端头在视口里露出来；
+   最底下那张（白色）仍然通高，所以不会露出空底 */
+body.edge .bg i{top:55vh;bottom:55vh}
+body.edge .bg i:nth-child(1){top:0;bottom:0;border-radius:0;box-shadow:none}
+.bg i:nth-child(1){left:40vw; background:#ffffff}
+.bg i:nth-child(2){left:57vw; background:#e6f2ff}
+.bg i:nth-child(3){left:74vw; background:#cbe1ff}
+.bg i:nth-child(4){left:91vw; background:#a9cdfc}
+.bg i:nth-child(5){left:108vw;background:#83b3f6}
+.bg i:nth-child(6){left:125vw;background:#639fee}
+@media (prefers-color-scheme:dark){
+  /* 暗色里「白→蓝」会把页面炸亮，改成「近黑 → 深蓝」，同向逐层加深 */
+  .bg i{box-shadow:-16px 5px 34px rgba(0,0,0,.55), -5px 2px 12px rgba(0,0,0,.4)}
+  .bg i:nth-child(1){background:#0a0d11}
+  .bg i:nth-child(2){background:#0b1018}
+  .bg i:nth-child(3){background:#0d1420}
+  .bg i:nth-child(4){background:#0f1828}
+  .bg i:nth-child(5){background:#11203a}
+  .bg i:nth-child(6){background:#13274a}
+}
+@media (max-width:760px){
+  /* 6 片挤一屏会变成一排竖药丸：窄屏减到 4 片、圆角收小、色阶重采样 */
+  .bg i{width:50vw;border-radius:24px}
+  .bg i:nth-child(1){left:40vw; background:#ffffff}
+  .bg i:nth-child(2){left:65vw; background:#cfe4ff}
+  .bg i:nth-child(3){left:90vw; background:#a3c9fb}
+  .bg i:nth-child(4){left:115vw;background:#7aabf2}
+  .bg i:nth-child(5),.bg i:nth-child(6){display:none}
+}
+@media (max-width:760px) and (prefers-color-scheme:dark){
+  .bg i:nth-child(1){background:#0a0d11}
+  .bg i:nth-child(2){background:#0e1521}
+  .bg i:nth-child(3){background:#121d31}
+  .bg i:nth-child(4){background:#162744}
 }
 *{box-sizing:border-box}
-/* 让纵向滚动条的位置一直占着 —— 否则切到内容较短的标签页时滚动条消失，
-   整列内容会横向跳 7px（实测 313 → 320），这就是「视觉没对齐」的根源 */
+/* 让纵向滚动条的位置一直占着 —— 否则切到内容较短的标签页时整列内容会横向跳 7px */
 html{scrollbar-gutter:stable}
-body{margin:0;background:var(--bg);color:var(--fg);
-  font-family:-apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
-  line-height:1.6;-webkit-text-size-adjust:100%}
-/* ---------- 布局：左栏（悬浮岛式）+ 右栏内容 ---------- */
-.app{display:flex;gap:18px;align-items:flex-start;max-width:1060px;margin:0 auto;
-  padding:20px 18px 60px}
+body{margin:0;background:transparent;color:var(--fg);
+  font-family:"Microsoft YaHei","PingFang SC","Hiragino Sans GB","Noto Sans SC",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:var(--t3);line-height:1.65;-webkit-text-size-adjust:100%}
+/* 全站统一微软雅黑：原来英文走 Segoe UI、中文走雅黑，同一行两套笔画粗细不齐。
+   雅黑放最前 —— Windows 上第一个就命中；后面 PingFang / 冬青黑 / 思源是给 mac、Linux 的兜底。 */
+/* 键盘走查看得见焦点（原来按钮 outline 是 none，Tab 一圈找不到自己在哪） */
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r1)}
+
+/* ---------- 顶部玻璃横幅：标题固定在页面正左上方 ----------
+   玻璃感 = 半透明底 + backdrop-filter 模糊它后面的色层 + 顶部一道高光 + 底面圆角。
+   因为背景是彩色叠片，模糊出来的颜色会跟着层次变，不是一块死白。 */
+.topbar{position:fixed;left:0;right:0;top:0;z-index:20;height:88px;
+  /* 想要「透过它看到模糊的背景」，两个条件缺一不可：
+     ① 底够透（.34 而不是 .55）—— 不然白蒙蒙一片，背景被糊平；
+     ② 背后得有东西可糊 —— 背景是一片片的色层，横幅压过去的那几条层界就是被模糊的对象。 */
+  background:rgba(255,255,255,.34);
+  -webkit-backdrop-filter:blur(22px) saturate(1.8);backdrop-filter:blur(22px) saturate(1.8);
+  border-bottom:1px solid rgba(255,255,255,.6);
+  border-radius:0 0 22px 22px;
+  box-shadow:0 8px 26px rgba(16,40,84,.14), inset 0 1px 0 rgba(255,255,255,.85)}
+.topinner{height:88px;display:flex;align-items:center;gap:10px;padding:0 20px}
+.topbar h1{font-size:20px;font-weight:700;margin:0;letter-spacing:.02em;white-space:nowrap}
+/* 变体 B（给 body 加 class="topbar-in"）：标题不贴视口最左，改成跟内容列左边界对齐 */
+body.topbar-in .topinner{max-width:1060px;margin:0 auto;padding:0 20px}
+@media (prefers-color-scheme:dark){
+  .topbar{background:rgba(16,22,30,.42);border-bottom-color:rgba(255,255,255,.07);
+    box-shadow:0 6px 22px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06)}
+}
+@media (max-width:760px){
+  .topbar{height:68px;border-radius:0 0 18px 18px}
+  .topinner{height:68px;padding:0 14px}
+  .topbar h1{font-size:18px}
+}
+/* ---------- 布局：左栏（悬浮岛）+ 右栏内容 ---------- */
+/* 24px 一档：让「岛」和「内容」之间有一条能读出来的缝，不再是 18px 的随手值 */
+.app{position:relative;z-index:1;display:flex;gap:var(--s5);align-items:flex-start;max-width:1060px;
+  margin:0 auto;padding:112px 20px var(--s7)}
 .main{flex:1;min-width:0}
-.nav{flex:none;width:186px;position:sticky;top:20px;background:var(--card);
-  border:1px solid var(--line);border-radius:16px;padding:10px;
-  box-shadow:0 10px 28px rgba(20,30,50,.07)}
+.nav{flex:none;width:186px;position:sticky;top:112px;background:var(--card);
+  border:1px solid var(--line);border-radius:var(--r3);padding:var(--s3);
+  box-shadow:var(--sh2)}
 .navhead{display:flex;align-items:center;justify-content:space-between;
-  padding:2px 4px 8px;border-bottom:1px solid var(--line);margin-bottom:8px}
-.navbrand{font-size:12.5px;font-weight:600;color:var(--mut);letter-spacing:.3px;white-space:nowrap}
-.navtoggle{flex:none;width:26px;height:26px;border:1px solid var(--line);border-radius:8px;
-  background:var(--card);color:var(--mut);cursor:pointer;font-size:12px;line-height:1;
+  padding:var(--s1) var(--s1) var(--s2);border-bottom:1px solid var(--line);margin-bottom:var(--s2)}
+.navbrand{font-size:var(--t1);font-weight:600;color:var(--mut);letter-spacing:.3px;white-space:nowrap}
+.navtoggle{flex:none;width:26px;height:26px;border:1px solid var(--line);border-radius:var(--r1);
+  background:var(--card);color:var(--mut);cursor:pointer;font-size:var(--t1);line-height:1;
   font-family:inherit}
 .navtoggle:hover{color:var(--accent);border-color:var(--accent)}
-.navlist{display:flex;flex-direction:column;gap:4px}
-/* 左栏底部：推广/外链（VS Code 插件市场、GitHub） */
-.navmore{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);
-  display:flex;flex-direction:column;gap:4px}
-.navlink{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:11px;
-  text-decoration:none;color:var(--mut);line-height:1.25}
+.navlist{display:flex;flex-direction:column;gap:var(--s1)}
+.navmore{margin-top:var(--s2);padding-top:var(--s2);border-top:1px solid var(--line);
+  display:flex;flex-direction:column;gap:var(--s1)}
+.navlink{display:flex;align-items:center;gap:10px;padding:var(--s2) var(--s3);
+  border-radius:var(--r2);text-decoration:none;color:var(--mut);line-height:1.25}
 .navlink .ic{flex:none;width:20px;text-align:center;font-size:15px}
 .navlink .tx{flex:1;min-width:0;display:flex;flex-direction:column}
-.navlink .tx b{font-weight:600;font-size:12.5px;color:var(--fg);white-space:nowrap;
+.navlink .tx b{font-weight:600;font-size:var(--t1);color:var(--fg);white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis}
-.navlink .tx small{font-size:11px;color:var(--mut);white-space:nowrap;overflow:hidden;
+.navlink .tx small{font-size:var(--t1);color:var(--mut);white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis}
 .navlink:hover{background:var(--code)}
 .navlink:hover b{color:var(--accent)}
-h1{font-size:22px;margin:0 0 4px}
-.sub{color:var(--mut);font-size:13px;margin:0 0 18px}
-.tab{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:0;
-  border-radius:11px;background:none;color:var(--mut);font-size:14px;cursor:pointer;
+/* 线性 SVG 图标：尺寸/线宽/基线统一，颜色吃 currentColor —— 激活项自动变蓝，暗色自动变亮 */
+.ic2{width:18px;height:18px;display:block}
+.ic.svgi{display:flex;align-items:center;justify-content:center}
+h1{font-size:var(--t5);line-height:1.4;margin:0 0 var(--s2);letter-spacing:.015em}
+.sub{color:var(--mut);font-size:var(--t2);margin:0 0 var(--s5)}
+.tab{display:flex;align-items:center;gap:10px;width:100%;padding:10px var(--s3);border:0;
+  border-radius:var(--r2);background:none;color:var(--mut);font-size:var(--t3);cursor:pointer;
   font-family:inherit;text-align:left;white-space:nowrap}
 .tab .ic{flex:none;width:20px;text-align:center;font-size:15px}
 .tab .tx{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .tab:hover{background:var(--code);color:var(--fg)}
-.tab.on{color:var(--accent);background:rgba(47,111,235,.10);font-weight:600}
-@media (prefers-color-scheme:dark){.tab.on{background:rgba(88,155,255,.14)}}
+.tab.on{color:var(--accent-ink);background:rgba(37,99,235,.10);font-weight:600}
+@media (prefers-color-scheme:dark){.tab.on{background:rgba(91,147,245,.14)}}
 /* 收起左栏：只留图标 */
 body.nav-collapsed .nav{width:56px}
 body.nav-collapsed .navbrand,body.nav-collapsed .tab .tx{display:none}
-body.nav-collapsed .navhead{justify-content:center;padding-bottom:6px}
+body.nav-collapsed .navhead{justify-content:center;padding-bottom:var(--s2)}
 body.nav-collapsed .tab{justify-content:center;padding:10px 0}
-body.nav-collapsed .navlink{justify-content:center;padding:9px 0}
+body.nav-collapsed .navlink{justify-content:center;padding:var(--s2) 0}
 body.nav-collapsed .navlink .tx{display:none}
-/* 窄屏：左栏变顶部横条，文字一直显示（换行而不是横滚，别把第 4 个藏起来） */
+/* 窄屏：左栏变顶部横条 */
 @media (max-width:760px){
-  .app{display:block;padding:14px 12px 48px}
-  .nav{position:static;width:auto;margin-bottom:16px;border-radius:14px}
-  .navhead{border-bottom:0;margin-bottom:6px}
+  .app{display:block;padding:var(--s4) var(--s3) var(--s6)}
+  .nav{position:static;width:auto;margin-bottom:var(--s4);border-radius:var(--r3)}
+  .navhead{border-bottom:0;margin-bottom:var(--s2)}
   .navtoggle{display:none}
-  .navlist{flex-direction:row;flex-wrap:wrap;gap:6px}
+  .navlist{flex-direction:row;flex-wrap:wrap;gap:var(--s2)}
   .tab{width:auto;flex:none}
-  .navmore{flex-direction:row;flex-wrap:wrap;margin-top:6px}
-  .navlink{width:auto;padding:8px 12px}
+  .navmore{flex-direction:row;flex-wrap:wrap;margin-top:var(--s2)}
+  .navlink{width:auto;padding:var(--s2) var(--s3)}
   body.nav-collapsed .nav{width:auto}
   body.nav-collapsed .tab .tx{display:inline}
   body.nav-collapsed .navlink .tx{display:flex}
   body.nav-collapsed .navbrand{display:block}
 }
-/* ---------- 面板切换：竖向滑动 + 淡入（变速：先快后慢） ----------
-   想调手感只改这三个值：
-   --pane-dur   时长（现用 0.6s；他接受 0.5–0.75s，写 .75s 更慢）
-   --pane-shift 滑动距离（16px → 想更明显写 26px）
-   --pane-ease  速度曲线（默认先快后慢；想"两头慢中间快"写 cubic-bezier(.6,0,.4,1)） */
+/* ---------- 面板切换动画 ---------- */
 :root{--pane-dur:.6s;--pane-shift:16px;--pane-ease:cubic-bezier(.22,1,.36,1)}
 .pane{display:none}
 .pane.on{display:block;animation:paneIn var(--pane-dur) var(--pane-ease) both}
@@ -89,103 +187,222 @@ body.nav-collapsed .navlink .tx{display:none}
   to{opacity:1;transform:translateY(0)}
 }
 @media (prefers-reduced-motion:reduce){.pane.on{animation:none}}
-textarea{width:100%;min-height:150px;padding:12px;border:1px solid var(--line);
-  border-radius:10px;background:var(--card);color:var(--fg);font-size:13px;
-  font-family:ui-monospace,Consolas,"Courier New",monospace;resize:vertical;line-height:1.5}
+/* ---------- 输入 ---------- */
+textarea{width:100%;min-height:150px;padding:var(--s3) var(--s3);border:1px solid var(--line);
+  border-radius:var(--r2);background:var(--card);color:var(--fg);font-size:var(--t2);
+  font-family:Consolas,ui-monospace,"SF Mono",Menlo,"Courier New",monospace;resize:vertical;line-height:1.6;
+  box-shadow:var(--sh1)}
 textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
-.row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 18px}
-button.act,a.act{padding:9px 18px;border-radius:9px;border:1px solid var(--line);
-  background:var(--card);color:var(--fg);font-size:14px;cursor:pointer;font-family:inherit;
-  white-space:nowrap}
+.row{display:flex;gap:var(--s2);flex-wrap:wrap;margin:var(--s3) 0 var(--s4)}
+button.act,a.act{padding:10px var(--s4);border-radius:var(--r1);border:1px solid var(--line);
+  background:var(--card);color:var(--fg);font-size:var(--t3);cursor:pointer;font-family:inherit;
+  white-space:nowrap;line-height:1.3}
+button.act:hover,a.act:hover{background:var(--code)}
 a.act{text-decoration:none;display:inline-flex;align-items:center}
-button.act.main,a.act.main{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
-button.act:hover,a.act:hover{filter:brightness(1.06)}
+button.act.main,a.act.main{background:var(--accent);color:#fff;border-color:var(--accent);
+  font-weight:600;box-shadow:var(--sh1)}
+/* ↓ 原来 .main{flex:1} 是给右栏容器写的，却撞在 class="act main" 的按钮上，
+     把「翻译一下」拉成旁边按钮的 2.6 倍宽（实测 243 / 94 / 94 / 66） */
+button.act.main,a.act.main{flex:none}
+button.act.main:hover,a.act.main:hover{filter:brightness(1.06);background:var(--accent)}
+button.act:active,a.act:active{transform:translateY(1px)}
+/* 等宽数字：结果区行号、收录条数、定积分结果不会因数字变化而左右跳 */
+.big,.lnbadge,.srcline .lnnum,table,#cnt{font-variant-numeric:tabular-nums}
+
+/* ---------- 报错翻译：左右两栏 ----------
+   左 = 输入（报错原文 / 代码 共用一块位置，左下角切换）
+   右 = 按钮在上、翻译结果在下
+   两栏顶端对齐（align-items:start），左栏文本框撑到 320 高，跟右栏高度相当 */
+.work{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.06fr);
+  gap:var(--s5);align-items:start}
+.col-in{display:flex;flex-direction:column;gap:var(--s4);min-width:0}
+.col-out{display:flex;flex-direction:column;min-width:0}
+.col-in textarea{min-height:320px}
+.col-in[data-field="err"] #codeIn2{display:none}
+.col-in[data-field="code"] #errIn{display:none}
+/* 表头高度 = 右栏按钮行的高度（40），再加同样的 16px 间距 ——
+   这样左边的文本框和右边的「翻译结果」顶端精确对齐 */
+.fieldhead{display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap;height:40px}
+.fieldhead b{font-size:var(--t2);color:var(--fg)}
+.fieldhead span{font-size:var(--t1);color:var(--mut)}
+.togglerow{display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap}
+.seg{display:inline-flex;gap:2px;background:var(--code);border:1px solid var(--line);
+  border-radius:var(--rpill);padding:3px}
+.segb{border:0;background:none;font-family:inherit;font-size:var(--t1);color:var(--mut);
+  padding:4px var(--s3);border-radius:var(--rpill);cursor:pointer;white-space:nowrap}
+.segb:hover{color:var(--fg)}
+.segb.on{background:var(--ink);color:#fff;font-weight:600}
+.seghint{font-size:var(--t1);color:var(--hint)}
+.col-out .row{margin:0 0 var(--s4)}
+.col-out .result{margin-top:0}
+/* 窄屏：两栏叠起来 */
+@media (max-width:1000px){
+  .work{grid-template-columns:minmax(0,1fr)}
+  .col-in textarea{min-height:200px}
+}
+/* ---------- 结果区：全页第二重点 ---------- */
+.result{margin-top:var(--s6)}
+.reshead{display:flex;align-items:center;justify-content:space-between;gap:var(--s3);
+  padding-bottom:var(--s3);border-bottom:2px solid var(--line);margin-bottom:var(--s4)}
+.reshead h2{margin:0;font-size:var(--t4);font-weight:600;letter-spacing:.03em}
+.reshead .hint{font-size:var(--t1);color:var(--mut);font-weight:400;margin-left:var(--s2)}
+body.nores .reshead #resCopy{visibility:hidden}
+/* 空状态：把「结果会出现在这里」框住，而不是让一行灰字飘在空白里 */
+.empty{color:var(--mut);text-align:center;padding:var(--s6) var(--s4);font-size:var(--t3);
+  border:1px dashed var(--line);border-radius:var(--r2);background:rgba(255,255,255,.55)}
+/* ---------- 卡片 ---------- */
 .card{background:var(--card);border:1px solid var(--line);border-left-width:4px;
-  border-radius:10px;padding:14px 16px;margin-bottom:12px}
+  border-radius:var(--r2);padding:var(--s4);margin-bottom:var(--s3);box-shadow:var(--sh1)}
 .card.e{border-left-color:var(--err)}
 .card.w{border-left-color:var(--warn)}
 .card.i{border-left-color:var(--accent)}
 .card.o{border-left-color:var(--ok)}
-.card h3{margin:0 0 6px;font-size:15px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.badge{font-size:11px;padding:1px 7px;border-radius:20px;font-weight:600;
+.card h3{margin:0 0 var(--s2);font-size:var(--t4);line-height:1.45;display:flex;align-items:center;
+  gap:var(--s2);flex-wrap:wrap}
+.badge{font-size:var(--t1);padding:1px var(--s2);border-radius:var(--rpill);font-weight:600;
   border:1px solid currentColor}
 .badge.e{color:var(--err)}.badge.w{color:var(--warn)}
 .badge.i{color:var(--accent)}.badge.o{color:var(--ok)}
-.why{font-size:14px;margin:6px 0 8px}
-.fix{font-size:13.5px;margin:8px 0 0;padding-left:18px}
-.fix li{margin:4px 0}
-code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:12.5px;
-  font-family:ui-monospace,Consolas,monospace}
-.say{font-size:13px;color:var(--mut);margin-top:8px;border-top:1px dashed var(--line);padding-top:8px}
-.ln{font-size:12.5px;color:var(--mut);margin-top:6px}
-.empty{color:var(--mut);text-align:center;padding:34px 10px;font-size:14px}
-.hit{background:rgba(47,111,235,.16);padding:1px 3px;border-radius:3px}
-label{display:block;font-size:13px;color:var(--mut);margin:12px 0 4px}
-input[type=text],input[type=number]{width:100%;padding:9px 11px;border:1px solid var(--line);
-  border-radius:9px;background:var(--card);color:var(--fg);font-size:14px;font-family:inherit}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.big{font-size:26px;font-weight:700;color:var(--accent);font-family:ui-monospace,Consolas,monospace;
+.why{font-size:var(--t3);margin:var(--s2) 0;line-height:1.7}
+.fix{font-size:var(--t2);margin:var(--s2) 0 0;padding-left:var(--s4);line-height:1.75}
+.fix li{margin:var(--s1) 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:var(--t1);
+  font-family:Consolas,ui-monospace,"SF Mono",Menlo,monospace}
+/* 命中关键词那行：原来叠了 opacity:.72，12px 灰字实际只有 3.06:1 —— 去掉 opacity，
+   直接用同一支灰，5.43:1 */
+.say{font-size:var(--t1);color:var(--mut);margin-top:var(--s2);
+  border-top:1px dashed var(--line);padding-top:var(--s2)}
+.ln{font-size:var(--t1);color:var(--mut);margin-top:var(--s2)}
+.hit{background:rgba(37,99,235,.16);padding:1px 3px;border-radius:4px}
+label{display:block;font-size:var(--t2);color:var(--mut);margin:var(--s3) 0 var(--s1)}
+input[type=text],input[type=number]{width:100%;padding:10px var(--s3);border:1px solid var(--line);
+  border-radius:var(--r1);background:var(--card);color:var(--fg);font-size:var(--t3);font-family:inherit}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--s3)}
+.big{font-size:26px;font-weight:700;color:var(--accent);font-family:Consolas,ui-monospace,monospace;
   word-break:break-all}
-.chips{display:flex;flex-wrap:wrap;gap:7px;margin:6px 0 4px}
-.chip{font-size:12.5px;padding:5px 11px;border-radius:20px;border:1px solid var(--line);
+.chips{display:flex;flex-wrap:wrap;gap:var(--s2);margin:var(--s2) 0 var(--s1)}
+.chip{font-size:var(--t1);padding:6px var(--s3);border-radius:var(--rpill);border:1px solid var(--line);
   background:var(--card);cursor:pointer;color:var(--fg)}
 .chip:hover{border-color:var(--accent);color:var(--accent)}
-.chip.on{border-color:var(--accent);color:var(--accent);background:rgba(47,111,235,.10);font-weight:600}
-/* 反馈：勾选行、可选联系方式 */
-label.chk{display:flex;align-items:flex-start;gap:7px;font-size:13px;color:var(--mut);
-  margin:11px 0 4px;cursor:pointer;line-height:1.6}
+.chip.on{border-color:var(--accent);color:var(--accent-ink);background:rgba(37,99,235,.10);font-weight:600}
+label.chk{display:flex;align-items:flex-start;gap:var(--s2);font-size:var(--t2);color:var(--mut);
+  margin:var(--s3) 0 var(--s1);cursor:pointer;line-height:1.7}
 label.chk input{margin:3px 0 0;flex:none}
-.foot{margin-top:30px;font-size:12px;color:var(--mut);text-align:center;
-  border-top:1px solid var(--line);padding-top:14px}
-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+.foot{margin-top:var(--s7);font-size:var(--t1);color:var(--mut);text-align:center;
+  border-top:1px solid var(--line);padding-top:var(--s4)}
+table{width:100%;border-collapse:collapse;font-size:var(--t2);margin-top:var(--s2)}
 td,th{border:1px solid var(--line);padding:6px 9px;text-align:left}
 th{background:var(--code);font-weight:600}
-details{margin-top:8px;font-size:13px}
-summary{cursor:pointer;color:var(--accent)}
+details{margin-top:var(--s2);font-size:var(--t2)}
+summary{cursor:pointer;color:var(--accent-ink)}
 /* 改错顺序清单 */
 .actcard{border-left-color:var(--ok)}
-ol.acts{margin:8px 0 0;padding:0;list-style:none;counter-reset:a}
-ol.acts li{counter-increment:a;position:relative;padding:7px 0 7px 30px;font-size:13.5px;
+ol.acts{margin:var(--s2) 0 0;padding:0;list-style:none;counter-reset:a}
+ol.acts li{counter-increment:a;position:relative;padding:var(--s2) 0 var(--s2) 30px;font-size:var(--t2);
   border-bottom:1px dashed var(--line)}
 ol.acts li:last-child{border-bottom:0}
-ol.acts li:before{content:counter(a);position:absolute;left:0;top:8px;width:19px;height:19px;
-  border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;
+ol.acts li:before{content:counter(a);position:absolute;left:0;top:9px;width:19px;height:19px;
+  border-radius:var(--rpill);background:var(--accent);color:#fff;font-size:var(--t1);font-weight:700;
   text-align:center;line-height:19px}
 .lnbadge{display:inline-block;background:var(--code);border:1px solid var(--line);
-  border-radius:5px;padding:0 6px;font-size:12px;font-weight:600;margin-right:5px}
-.tag{font-size:11px;padding:0 6px;border-radius:10px;border:1px solid currentColor;white-space:nowrap}
+  border-radius:4px;padding:0 6px;font-size:var(--t1);font-weight:600;margin-right:5px}
+.tag{font-size:var(--t1);padding:0 6px;border-radius:var(--rpill);border:1px solid currentColor;
+  white-space:nowrap}
 .tag.e{color:var(--err)}.tag.w{color:var(--warn)}
 /* 警告卡默认折叠 */
 details.card{padding:0}
-details.card>summary{padding:13px 16px;cursor:pointer;list-style:none;display:flex;
+details.card>summary{padding:var(--s3) var(--s4);cursor:pointer;list-style:none;display:flex;
   align-items:center;gap:6px}
 details.card>summary::-webkit-details-marker{display:none}
-details.card>summary h3{margin:0;flex:1;font-size:15px}
-details.card>summary:after{content:'展开';font-size:12px;color:var(--accent);
-  border:1px solid var(--line);border-radius:6px;padding:1px 8px;flex:none}
+details.card>summary h3{margin:0;flex:1;font-size:var(--t4)}
+details.card>summary:after{content:'展开';font-size:var(--t1);color:var(--accent-ink);
+  border:1px solid var(--line);border-radius:var(--r1);padding:1px var(--s2);flex:none}
 details.card[open]>summary:after{content:'收起'}
-details.card>.why,details.card>.fix,details.card>.say{margin-left:16px;margin-right:16px}
+details.card>.why,details.card>.fix,details.card>.say{margin-left:var(--s4);margin-right:var(--s4)}
 details.card>.why{margin-top:0}
-details.card>.say{margin-bottom:14px}
-/* 命中关键词：淡化 */
-.say{opacity:.72;font-size:12px}
+details.card>.say{margin-bottom:var(--s3)}
 /* 可复制的正确写法 */
-.tpl{margin:11px 0 3px;border:1px solid var(--line);border-radius:9px;overflow:hidden}
-.tplbar{display:flex;align-items:center;justify-content:space-between;gap:8px;
-  padding:6px 11px;background:var(--code);font-size:12px;color:var(--mut);
+.tpl{margin:var(--s3) 0 3px;border:1px solid var(--line);border-radius:var(--r1);overflow:hidden}
+.tplbar{display:flex;align-items:center;justify-content:space-between;gap:var(--s2);
+  padding:6px var(--s3);background:var(--code);font-size:var(--t1);color:var(--mut);
   border-bottom:1px solid var(--line)}
-.cpbtn{font:inherit;font-size:12px;padding:2px 11px;border-radius:6px;cursor:pointer;
-  border:1px solid var(--line);background:var(--card);color:var(--accent)}
+.cpbtn{font:inherit;font-size:var(--t1);padding:2px var(--s3);border-radius:var(--r1);cursor:pointer;
+  border:1px solid var(--line);background:var(--card);color:var(--accent-ink)}
 .cpbtn:hover{border-color:var(--accent)}
-.tpl pre{margin:0;padding:11px 13px;overflow-x:auto;font-size:12.5px;
+.tpl pre{margin:0;padding:var(--s3);overflow-x:auto;font-size:var(--t1);
   line-height:1.7;border:0;background:transparent;border-radius:0}
 /* 贴了代码时，清单里带出出错那一行 */
-label.lbl2{display:block;margin:13px 0 4px;font-size:12.5px;color:var(--mut)}
-.srcline{display:flex;gap:9px;align-items:flex-start;margin-top:7px;padding:6px 10px;
-  background:var(--code);border:1px solid var(--line);border-radius:7px;
-  font-size:12.5px;line-height:1.6;overflow-x:auto}
+.srcline{display:flex;gap:9px;align-items:flex-start;margin-top:6px;padding:6px 10px;
+  background:var(--code);border:1px solid var(--line);border-radius:var(--r1);
+  font-size:var(--t1);line-height:1.7;overflow-x:auto}
 .srcline .lnnum{flex:none;min-width:2.2em;text-align:right;color:var(--mut);
   user-select:none;font-variant-numeric:tabular-nums}
 .srcline code{white-space:pre;font-family:inherit;background:none;border:0;padding:0}
-mark.fw{background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.55);
-  border-radius:3px;color:inherit;font-weight:700;padding:0 1px}
+/* 全角标点高亮：全站最该看清的一处，原来只有 3.45:1 */
+mark.fw{background:var(--errbg);border:1px solid var(--err);
+  border-radius:4px;color:var(--err);font-weight:700;padding:0 2px}
+
+
+
+/* ---------- 选项之间的液体填充 ----------
+   .ink 是那块深蓝；它不动高度的时候就是"充满按钮"的填充色。
+   切换时先朝目标方向伸长（把两个选项连同中间那段一起包住），再把尾巴收回来 —— 像液体流过去。
+   .inkgoo 上的 goo 滤镜把圆角糊成鼓包，伸长的过程就有了"黏"的质感。 */
+:root{--ink:#1d4ed8}
+@media (prefers-color-scheme:dark){:root{--ink:#1f56cc}}
+.svgdefs{position:absolute;width:0;height:0;overflow:hidden}
+.navlist{position:relative}
+.inkgoo{position:absolute;left:0;right:0;top:0;bottom:0;z-index:0;pointer-events:none;
+  filter:url(#goo)}
+/* 四个形状的位置/尺寸全部由 JS 内联给（left/top/width/height），
+   这样竖排（桌面）和横排（窄屏）能用同一套代码，只是换一根轴 */
+.ink{position:absolute;left:0;top:0;width:0;height:0;background:var(--ink);
+  border-radius:var(--r2);will-change:left,top,width,height}
+.tab{position:relative;z-index:1;background:none}
+/* 选中项：字变白（深蓝底上白字是 6.7:1） */
+.tab.on{color:#fff;background:none;font-weight:600}
+.tab.on .ic{color:#fff}
+/* 字色时机（跟 demo-glue.js 里的 markText 配套）：被蓝盖住的那一侧才用白字，
+   没盖住的时候必须退回灰字 —— 否则会出现"白字压浅底"或"灰字压深蓝"两种看不清 */
+.tab{transition:color .12s linear}
+.tab.leaving{color:#fff}
+.tab.leaving .ic{color:#fff}
+.tab.on.waiting{color:var(--mut)}
+.tab.on.waiting .ic{color:var(--mut)}
+@media (prefers-reduced-motion:reduce){
+  .ink{transition:none !important}
+}
+/* ---------- 左侧竖幅（≥761px）：导航固定到最左侧，做法跟顶部横幅一样是玻璃 ----------
+   用 min-width 媒体查询包起来，就是为了避开「同权重后写的赢」那个坑：
+   窄屏那套布局规则在文件靠前位置，这里不去和它抢，直接在窄屏不生效。 */
+@media (min-width:761px){
+  :root{--railw:196px}
+  body.nav-collapsed{--railw:56px}      /* 跟旧的 body.nav-collapsed .nav{width:56px} 对齐 */
+  .topbar{left:var(--railw)}            /* 横幅从竖幅右边开始，左上角留给竖幅，不打架 */
+  .nav{position:fixed;left:0;top:0;bottom:0;width:var(--railw);z-index:15;
+    display:flex;flex-direction:column;
+    background:rgba(212,231,255,.46);   /* 偏浅蓝的玻璃，不是顶部那种白玻璃 */
+    -webkit-backdrop-filter:blur(22px) saturate(1.7);backdrop-filter:blur(22px) saturate(1.7);
+    border:0;border-right:1px solid rgba(255,255,255,.65);
+    border-radius:0 22px 22px 0;
+    box-shadow:8px 0 26px rgba(16,40,84,.10), inset 0 1px 0 rgba(255,255,255,.7);
+    padding:0 12px 14px;transition:width .18s ease}
+  .navhead{height:88px;padding:0 4px;border-bottom:0;margin:0 0 10px}
+  .navlist{overflow-y:auto;overflow-x:hidden}
+  .navmore{margin-top:auto}
+  /* 内容区往右让开竖幅；再在「剩下的宽度」里居中，而不是在整屏里居中 */
+  .app{margin-left:calc(var(--railw) + max(20px, (100% - var(--railw) - 1060px)/2));
+       margin-right:auto;padding-top:112px}
+}
+@media (min-width:761px) and (prefers-color-scheme:dark){
+  .nav{background:rgba(24,38,60,.5);border-right-color:rgba(255,255,255,.08);
+    box-shadow:8px 0 26px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.05)}
+}
+
+/* ---------- 收尾覆盖：必须放在最后 ----------
+   窄屏那两条布局规则（.app{display:block;padding:…}）在文件靠前的位置之后还有一份，
+   同权重、后写的赢，所以「给横幅让位的 padding-top」只能放这里，否则会被盖掉。 */
+@media (max-width:760px){
+  .app{padding-top:84px}   /* 窄屏横幅 68px 高 + 16px 间距 */
+  .nav{top:0}
+}
