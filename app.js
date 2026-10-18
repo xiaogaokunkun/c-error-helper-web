@@ -164,8 +164,16 @@ function translate(raw, codeText){
       ? String(codeText).replace(/\r\n?/g,'\n').split('\n') : null);
   }else{
   const ln=findLineNo(raw);
-  if(ln) html+='<div class="card i"><h3>报错位置</h3><div class="why">编译器指向第 <strong>'+ln+'</strong> 行。'
-    +'先看<strong>这一行的末尾</strong>是不是漏了分号，再往上找：少分号、少括号这类错，编译器报的位置常常晚了一行。</div></div>';
+  if(ln){
+    let posCard='<div class="card i"><h3>报错位置</h3><div class="why">编译器指向第 <strong>'+ln+'</strong> 行。'
+      +'先看<strong>这一行的末尾</strong>是不是漏了分号，再往上找：少分号、少括号这类错，编译器报的位置常常晚了一行。</div>';
+    if(codeText){
+      const srcLines=String(codeText).replace(/\r\n?/g,'\n').split('\n');
+      if(srcLines[ln-1] && srcLines[ln-1].trim()!=='')
+        posCard+=srcSnippet(srcLines[ln-1], ln);
+    }
+    html+=posCard+'</div>';
+  }
   }
   html+=out.map(o=>{
     const c=o.r.s==='e'?'e':(o.r.s==='w'?'w':'i');
