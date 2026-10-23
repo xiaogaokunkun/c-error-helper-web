@@ -98,6 +98,9 @@ console.log('逻辑坑 LOGIC.length =', vm.runInContext('LOGIC.length', ctx));
 console.log('#cnt 文案 =', el('#cnt').textContent);
 console.log('#errOut 初始渲染 =', strip(el('#errOut').innerHTML).slice(0, 60));
 console.log('#ruleList 初始渲染长度 =', el('#ruleList').innerHTML.length);
+ok('规则库首屏延迟初始化', el('#ruleList').innerHTML.length === 0, String(el('#ruleList').innerHTML.length));
+vm.runInContext('window.__initRules()', ctx);
+ok('首次打开规则库后完成渲染', el('#ruleList').innerHTML.length > 1000, String(el('#ruleList').innerHTML.length));
 ok('#doErr 绑定', typeof el('#doErr').onclick === 'function');
 ok('#doChk 绑定', typeof el('#doChk').onclick === 'function');
 ok('#doInt 绑定', typeof el('#doInt').onclick === 'function');
@@ -145,6 +148,25 @@ try {
   ok('检出全角逗号', t.includes('全角'), '');
   ok('检出未闭合括号', t.includes('没闭合'), '');
 } catch (e) { console.log('  ❌ 抛错:', e.message); fail++; }
+
+// ---------- 3.1) 规则关键词对齐 ----------
+console.log('\n=== 3.1) 规则关键词对齐（直接调用 translate）===');
+const keywordCases = [
+  ['cannot open source file "stdio.h"', '头文件找不到 / 文件名写错'],
+  ['could not open source file "a.h"', '头文件找不到 / 文件名写错'],
+  ['include errors detected', '头文件找不到 / 文件名写错'],
+  ["expected a ';'", '上一行末尾漏了分号'],
+  ['expected an expression', '某个符号前面缺了个东西（表达式不完整）'],
+  ['no directories in search list', '头文件找不到 / 文件名写错'],
+  ['sum is undefined', '用了一个没声明的变量名'],
+  ["expected a ')'", '圆括号没配对，或括号里内容写错'],
+  ["use of undeclared identifier 'sum'", '用了一个没声明的变量名'],
+];
+keywordCases.forEach(([msg, expected]) => {
+  const out = vm.runInContext(`translate(${JSON.stringify(msg)}, '')`, ctx);
+  const hs = heads(out);
+  ok(`${msg} 命中「${expected}」`, hs.some(h => h.startsWith(expected)), hs.join(' / '));
+});
 
 // ---------- 4) 定积分 ----------
 console.log('\n=== 4) 定积分 ===');

@@ -20,6 +20,8 @@ TABS.forEach(t=>{
       pane.classList.add('on');
     }
     TABS.forEach(x=>x.classList.toggle('on',x===t));
+    if(t.dataset.p==='rules' && window.__initRules) window.__initRules();
+    if(t.dataset.p==='fb' && window.__initFeedbackChips) window.__initFeedbackChips();
   };
 });
 /* 左栏收起 / 展开（状态记住，窄屏下由 CSS 强制展开） */
@@ -191,11 +193,13 @@ function translate(raw, codeText){
 }
 
 $('#doErr').onclick=()=>{
+  if(window.__initResultTools) window.__initResultTools();
   const v=$('#errIn').value.trim();
   const c=$('#codeIn2').value;
   $('#errOut').innerHTML = v? translate(v, c)
     : '<div class="empty">先把报错粘进去 ↑</div>';
   if(v && window.histPush) window.histPush(v, c);   // 记一笔，下次同一个错不用重新复制
+  if(window.__syncResultTools) window.__syncResultTools();
 };
 $('#paste').onclick=function(){
   var btn=this, old=btn.textContent;
@@ -296,6 +300,7 @@ function bodyScan(code){
 }
 
 $('#doChk').onclick=()=>{
+  if(window.__initResultTools) window.__initResultTools();
   const code=$('#codeIn').value;
   if(!code.trim()){$('#chkOut').innerHTML='<div class="empty">先把代码粘进去 ↑</div>';return;}
   const r=bodyScan(code);
@@ -345,6 +350,7 @@ $('#doChk').onclick=()=>{
       +'<ul class="fix">'+hall.map(h=>'<li><strong>'+h.n+'</strong>：'+h.d+'</li>').join('')+'</ul></div>';
   }
   $('#chkOut').innerHTML=html;
+  if(window.__syncResultTools) window.__syncResultTools();
 };
 $('#clr2').onclick=()=>{$('#codeIn').value='';$('#chkOut').innerHTML='';};
 $('#demo2').onclick=()=>{
@@ -388,6 +394,7 @@ function simpson(f,a,b,n){
   return s*h/3;
 }
 $('#doInt').onclick=()=>{
+  if(window.__initResultTools) window.__initResultTools();
   const out=$('#intOut');
   try{
     const f=compileF($('#fx').value);
@@ -415,12 +422,14 @@ $('#doInt').onclick=()=>{
       +'<li>除法加括号：<code>1/x+1</code> 是 <code>(1/x)+1</code>，想要 <code>1/(x+1)</code> 就加括号</li>'
       +'<li>只支持 <code>x</code> 一个变量</li></ul></div>';
   }
+  if(window.__syncResultTools) window.__syncResultTools();
 };
 $('#clr3').onclick=()=>{$('#intOut').innerHTML='';};
 
 
 $('#cnt').textContent=RULES.length;
-$('#errOut').innerHTML='<div class="empty">把报错粘进去，点「翻译一下」</div>';
+$('#errOut').innerHTML='<div class="empty"><strong>把报错粘进去，点「翻译一下」</strong>'
+  +'<small>会告诉你是哪一行、为什么错、怎么改 —— 一次报好几条时，按「先改哪个」排好序</small></div>';
 
 /* ---------- 反馈 ---------- */
 /* 想让用户直接发邮件/加 QQ，把联系方式填在这里（例：'xiaogao@qq.com'）；留空则只提示"发我" */
@@ -450,9 +459,16 @@ function fbBuild(){
   L.push('浏览器 '+navigator.userAgent);
   return L.join('\n');
 }
-document.querySelectorAll('#fbChips .chip').forEach(function(c){
-  c.onclick=function(){ c.classList.toggle('on'); };
-});
+(function(){
+  var ready=false;
+  window.__initFeedbackChips=function(){
+    if(ready) return;
+    ready=true;
+    document.querySelectorAll('#fbChips .chip').forEach(function(c){
+      c.onclick=function(){ c.classList.toggle('on'); };
+    });
+  };
+})();
 $('#fbCopy').onclick=function(){
   var btn=this, old=btn.textContent, text=fbBuild();
   var tail=FB_CONTACT?('粘好后发我：'+FB_CONTACT):'粘好后发我（微信 / QQ 都行）';
@@ -478,7 +494,11 @@ $('#fbClr').onclick=function(){
 /* 注意：必须放在所有初始化之后 —— 否则会被上面那行的初始文案覆盖 */
 runUrlParams();
 
+/* 结果栏的复制按钮 / 监听器只在第一次产生结果时初始化，避免阻塞首屏。 */
 (function(){
+  var ready=false;
+  var resLink=document.getElementById('resLink');
+  if(resLink && resLink.style) resLink.style.visibility='hidden';
   var ids=['errOut','chkOut','intOut'];
   function sync(){
     var has=function(id){
@@ -498,25 +518,32 @@ runUrlParams();
     var rl=document.getElementById('resLink');     // 「复制链接」跟着报错翻译的结果一起出现
     if(rl && rl.style) rl.style.visibility=has('errOut')?'':'hidden';
   }
-  document.addEventListener('click',function(e){
-    if(e.target && e.target.closest &&
-       e.target.closest('.act.main,.act,.chip,#clr,#clr2,#clr3')) setTimeout(sync,30);
-  });
-  [['resCopy','errOut'],['chkCopy','chkOut'],['intCopy','intOut']].forEach(function(p){
-    var b=document.getElementById(p[0]); if(!b || !b.addEventListener) return;
-    b.addEventListener('click',function(){
-      var out=document.getElementById(p[1]);
-      var t=(out.innerText||'').trim();
-      navigator.clipboard.writeText(t).then(function(){
-        var old=b.textContent; b.textContent='已复制';
-        setTimeout(function(){b.textContent=old;},1200);
-      }).catch(function(){});
+  function init(){
+    if(ready) return;
+    ready=true;
+    document.addEventListener('click',function(e){
+      if(e.target && e.target.closest &&
+         e.target.closest('.act.main,.act,.chip,#clr,#clr2,#clr3')) setTimeout(sync,30);
     });
-  });
-  if(typeof MutationObserver!=='undefined'){
-    new MutationObserver(sync).observe(document.body,{childList:true,subtree:true});
+    [['resCopy','errOut'],['chkCopy','chkOut'],['intCopy','intOut']].forEach(function(p){
+      var b=document.getElementById(p[0]); if(!b || !b.addEventListener) return;
+      b.addEventListener('click',function(){
+        var out=document.getElementById(p[1]);
+        var t=(out.innerText||'').trim();
+        navigator.clipboard.writeText(t).then(function(){
+          var old=b.textContent; b.textContent='已复制';
+          setTimeout(function(){b.textContent=old;},1200);
+        }).catch(function(){});
+      });
+    });
+    if(typeof MutationObserver!=='undefined'){
+      new MutationObserver(sync).observe(document.body,{childList:true,subtree:true});
+    }
+    sync();
   }
-  sync();
+  window.__initResultTools=init;
+  window.__syncResultTools=sync;
+  if(AUTO_OPEN) init();
 })();
 
 /* ===== 报错翻译：输入区「报错原文 / 代码」切换 =====
@@ -543,121 +570,146 @@ runUrlParams();
   });
 })();
 
-/* ===== 液体填充 =====
-   目标按钮的填充方式（按他 01:07 的说法）：液体从**两边**进来，在**中间汇合**，再**灌满**。
-   四个形状一起演（都在 .inkgoo 里，goo 滤镜把挨着的形状黏成一股）：
-     S  = 旧按钮那块：朝流向那一头抽干
-     P1/P2 = 新按钮上的一对水流：从"垂直于流向"的两条边各长一半，在中间合上
-     B  = 本体：两条流合上后，沿流向灌满
-   ⚠️ 方向必须跟着布局走（2026-10-16 01:2x 修的 bug）：
-     桌面 = 导航竖排 → 流向是 y（两股流从上/下边进来？不，是从左/右边进来、往下灌）
-     窄屏 = 导航横排（flex row + wrap）→ 流向是 x（两股流从上/下边进来、往右灌）
-   之前写死成"上下动"，所以在手机上不仅看不见液体流，选项之间也根本过不去。 */
+/* ===== 液体填充：笔直通道 + 分段变速 =====
+   结构：三块同色形状叠在 .inkgoo 里（goo 滤镜把它们黏成一股液体）
+     src  = 旧按钮：沿主轴被抽空（底边不动 / 顶边往回收）
+     chan = 中间通道：宽度全程不变，只沿主轴生长，最后再从头收掉
+     dst  = 新按钮：从通道落点那个圆开始，向两侧撑满
+   变速：每段用不同的贝塞尔 —— 通道加速下坠、填满减速回弹、抽空加速、收尾减速。 */
 (function(){
-  // 触屏设备（手机/平板）：液体动画靠 setTimeout 收尾，移动端浏览器会节流它，
-  // 卡住后选中项白字压在浅底上、高亮和内容不同步。触屏下禁用动画，改用 CSS 静态高亮。
-  if(typeof matchMedia==='function' && matchMedia('(hover: none) and (pointer: coarse)').matches) return;
   var list=document.querySelector('.navlist'); if(!list || !list.querySelectorAll) return;
   var tabs=[].slice.call(list.querySelectorAll('.tab'));
   if(!tabs.length || !tabs[0].getBoundingClientRect) return;
 
   var layer=document.createElement('span'); layer.className='inkgoo';
-  function mk(c){ var e=document.createElement('span'); e.className='ink '+c;
+  function part(cls){ var e=document.createElement('span'); e.className='inkpart '+cls;
     e.setAttribute('aria-hidden','true'); layer.appendChild(e); return e; }
-  var S=mk('inkS'), P1=mk('inkP'), P2=mk('inkP'), B=mk('inkB');
+  var SRC=part('inksrc'), CH=part('inkchan'), DST=part('inkdst');
   list.insertBefore(layer, list.firstChild);
 
-  var T=380, cur=0, phase='rest';
-  var ES='cubic-bezier(.45,0,.55,1)';       // 旧项抽干
-  var E1='cubic-bezier(.4,0,.4,1)';         // 两条水流从两边进来
-  var E2='cubic-bezier(.45,0,.55,1)';       // 灌满
+  var cur=0, phase='rest', timers=[];
   var reduce = typeof matchMedia==='function' && matchMedia('(prefers-reduced-motion:reduce)').matches;
+  /* 变速曲线：这是这次的重点 —— 每段速度都不一样 */
+  var E_FLOW  = 'cubic-bezier(.55,0,.85,.35)';   /* 通道下坠：起步慢、越掉越快 */
+  var E_FILL  = 'cubic-bezier(.18,1.5,.42,1)';   /* 撑满：冲过头再回弹 */
+  var E_EMPTY = 'cubic-bezier(.45,0,.9,.45)';    /* 抽空：加速收 */
+  var E_TAIL  = 'cubic-bezier(.4,0,.55,1)';      /* 通道收尾：缓停 */
+  var T_FLOW=430, T_FILL=520, T_EMPTY=430, T_TAIL=320;
+  var D_START_FILL=430, D_START_EMPTY=250, D_TAIL=980;
+
   tabs.forEach(function(t,i){ if(t.classList.contains('on')) cur=i; });
 
-  /* 导航是竖排还是横排：比较前两项的位移，哪个方向大就是哪个 */
   function vertical(){
     if(tabs.length<2) return true;
     var a=tabs[0].getBoundingClientRect(), b=tabs[1].getBoundingClientRect();
     return Math.abs(b.top-a.top) >= Math.abs(b.left-a.left);
   }
+  /* 蓝块比按钮小一圈：宽 90%、高 82%，居中 —— 不再整块盖满按钮 */
+  var INS_W=0.90, INS_H=0.82;
   function rel(i){
     var r=tabs[i].getBoundingClientRect(), l=list.getBoundingClientRect();
-    return {x:r.left-l.left, y:r.top-l.top, w:r.width, h:r.height};
+    var w=r.width*INS_W, h=r.height*INS_H;
+    var x=r.left-l.left+(r.width-w)/2, y=r.top-l.top+(r.height-h)/2;
+    return {x:x, y:y, w:w, h:h, cx:x+w/2, cy:y+h/2};
   }
-  var tSrc=null, tDst=null;
-  function markText(src, dst){
-    clearTimeout(tSrc); clearTimeout(tDst);
-    tabs[src].classList.add('leaving');
-    tabs[dst].classList.add('waiting');
-    tSrc=setTimeout(function(){ tabs[src].classList.remove('leaving'); }, Math.round(T*0.5));
-    tDst=setTimeout(function(){ tabs[dst].classList.remove('waiting'); },  Math.round(T*0.62));
+  function set(el, x, y, w, h, dur, ease){
+    el.style.transition = dur ? ('left '+dur+'ms '+(ease||'linear')+', top '+dur+'ms '+(ease||'linear')
+      +', width '+dur+'ms '+(ease||'linear')+', height '+dur+'ms '+(ease||'linear')) : 'none';
+    el.style.left=x+'px'; el.style.top=y+'px'; el.style.width=Math.max(0,w)+'px'; el.style.height=Math.max(0,h)+'px';
   }
-  function place(e, r, tr){
-    e.style.transition = tr || 'none';
-    e.style.left=r.x+'px'; e.style.top=r.y+'px'; e.style.width=r.w+'px'; e.style.height=r.h+'px';
-  }
+  function hide(el){ set(el,0,0,0,0); }
+  function clearTimers(){ timers.forEach(clearTimeout); timers=[]; }
+  function later(fn, ms){ timers.push(setTimeout(fn, ms)); }
+
+  /* 静止：只有 dst 贴在当前项上，通道和 src 都收成 0 */
   function rest(){
-    place(S, rel(cur));
-    var z=rel(cur);
-    place(P1,{x:z.x,y:z.y,w:0,h:0}); place(P2,{x:z.x,y:z.y,w:0,h:0}); place(B,{x:z.x,y:z.y,w:0,h:0});
+    clearTimers();
+    var r=rel(cur);
+    set(DST, r.x, r.y, r.w, r.h);
+    hide(CH); hide(SRC);
     phase='rest';
   }
+
+  /* 字色：蓝还没流到的那一侧保持灰字 */
+  var tSrc=null, tDst=null;
+  function markText(from, to){
+    clearTimeout(tSrc); clearTimeout(tDst);
+    tabs[from].classList.add('leaving');
+    tabs[to].classList.add('waiting');
+    tSrc=setTimeout(function(){ tabs[from].classList.remove('leaving'); }, 380);
+    tDst=setTimeout(function(){ tabs[to].classList.remove('waiting'); }, 520);
+  }
+
   function go(i){
-    if(typeof i!=='number' || i<0 || i===cur || i>=tabs.length) return;
-    var A=rel(cur), G=rel(i), from=cur;
-    var vert=vertical();
-    var fwd = vert ? (G.y >= A.y) : (G.x >= A.x);      // 目标在流向的正向
-    cur=i;
+    if(i===cur) return;
+    if(phase!=='rest'){ rest(); }
+    var from=cur, vert=vertical();
+    var A=rel(from), B=rel(i);
+    cur=i; phase='flow';
     tabs.forEach(function(t,k){ if(k!==i) t.classList.remove('on'); });
     tabs[i].classList.add('on');
     markText(from, i);
-    if(reduce){ rest(); tabs[from].classList.remove('leaving'); tabs[i].classList.remove('waiting'); return; }
+    if(reduce){ rest(); return; }
 
-    /* ① 起跑线 */
-    place(S, A); place(P1, G); place(P2, G); place(B, G);
-    // 两条水流和本体先从"零"起：
-    var band = Math.max(10, Math.round((vert ? G.h : G.w) * 0.4));
-    var p1s, p1e, p2s, p2e, bS, bE;
-    if(vert){                                   // 竖排：水流从左/右边进，往下/上灌
-      p1s={x:G.x,       y:G.y, w:0,       h:band};  p1e={x:G.x,        y:G.y, w:G.w/2, h:band};
-      p2s={x:G.x+G.w,   y:G.y, w:0,       h:band};  p2e={x:G.x+G.w/2,  y:G.y, w:G.w/2, h:band};
-      bS ={x:G.x, y:(fwd?G.y:G.y+G.h), w:G.w, h:0};
-      bE ={x:G.x, y:G.y,               w:G.w, h:G.h};
-    }else{                                      // 横排：水流从上/下边进，往右/左灌
-      p1s={x:G.x, y:G.y,       w:band, h:0};       p1e={x:G.x, y:G.y,       w:band, h:G.h/2};
-      p2s={x:G.x, y:G.y+G.h,   w:band, h:0};       p2e={x:G.x, y:G.y+G.h/2, w:band, h:G.h/2};
-      bS ={x:(fwd?G.x:G.x+G.w), y:G.y, w:0,      h:G.h};
-      bE ={x:G.x,               y:G.y, w:G.w,    h:G.h};
-    }
-    var sEnd = {x:A.x, y:A.y, w:A.w, h:A.h};
-    if(vert){ sEnd.h=0; sEnd.y = fwd ? A.y+A.h : A.y; }
-    else    { sEnd.w=0; sEnd.x = fwd ? A.x+A.w : A.x; }
-    place(P1,p1s); place(P2,p2s); place(B,bS);
-    void P1.offsetWidth;                        // 强制回流，先落定起始状态
-    phase='flow';
-    place(S,  sEnd, 'left '+T+'ms '+ES+', top '+T+'ms '+ES+', width '+T+'ms '+ES+', height '+T+'ms '+ES);
-    place(P1, p1e, 'left '+Math.round(T*0.45)+'ms '+E1+', top '+Math.round(T*0.45)+'ms '+E1
-                 +', width '+Math.round(T*0.45)+'ms '+E1+', height '+Math.round(T*0.45)+'ms '+E1);
-    place(P2, p2e, 'left '+Math.round(T*0.45)+'ms '+E1+', top '+Math.round(T*0.45)+'ms '+E1
-                 +', width '+Math.round(T*0.45)+'ms '+E1+', height '+Math.round(T*0.45)+'ms '+E1);
-    place(B,  bE,  'left '+Math.round(T*0.55)+'ms '+E2+' '+Math.round(T*0.45)+'ms, top '
-                 +Math.round(T*0.55)+'ms '+E2+' '+Math.round(T*0.45)+'ms, width '
-                 +Math.round(T*0.55)+'ms '+E2+' '+Math.round(T*0.45)+'ms, height '
-                 +Math.round(T*0.55)+'ms '+E2+' '+Math.round(T*0.45)+'ms');
-    /* 收尾必须清状态类：只靠中间那两个定时器，标签页被节流时会留下 waiting
-       （= 选中项一直灰字压深蓝） */
-    setTimeout(function(){
-      tabs[from].classList.remove('leaving'); tabs[i].classList.remove('waiting');
-      rest();
-    }, T+40);
+    /* 通道宽度：按钮短边的 44%，竖排量高度、横排量宽度 */
+    var CHW=Math.max(8, Math.round((vert?A.h:A.w)*0.40));
+    var dist = vert ? (B.cy-A.cy) : (B.cx-A.cx);
+    var dir = dist>=0 ? 1 : -1;
+
+    /* 1) 起点：src 完整贴在旧按钮上，通道长度为 0、停在旧按钮中心 */
+    set(SRC, A.x, A.y, A.w, A.h);
+    hide(CH); hide(DST);
+
+    /* 2) 通道沿主轴生长到新按钮中心（加速曲线） */
+    later(function(){
+      var OS=1.18;   /* 冲出终点 18%：轨迹更长，眼睛才跟得住 */
+      if(vert){
+        var dir = B.cy >= A.cy ? 1 : -1;
+        var y0 = dir > 0 ? (A.y + A.h - 3) : (A.y + 3);        /* 从源按钮下(上)边缘出发，不从中心穿出来 */
+        var y1 = B.cy + (B.cy - y0) * (OS - 1);
+        set(CH, A.cx-CHW/2, Math.min(y0,y1), CHW, Math.abs(y1-y0), T_FLOW, E_FLOW);
+      }else{
+        var dirH = B.cx >= A.cx ? 1 : -1;
+        var x0 = dirH > 0 ? (A.x + A.w - 3) : (A.x + 3);
+        var x1 = B.cx + (B.cx - x0) * (OS - 1);
+        set(CH, Math.min(x0,x1), A.cy-CHW/2, Math.abs(x1-x0), CHW, T_FLOW, E_FLOW);
+      }
+      /* 3) 新按钮从通道粗细开始撑满（回弹曲线） */
+      later(function(){
+        if(vert) set(DST, B.cx-CHW/2, B.cy-CHW/2, CHW, CHW, 1);
+        else     set(DST, B.cx-CHW/2, B.cy-CHW/2, CHW, CHW, 1);
+        later(function(){ set(DST, B.x, B.y, B.w, B.h, T_FILL, E_FILL); }, 16);
+      }, D_START_FILL);
+      /* 4) 旧按钮被抽空：底边不动、顶边往回收（加速曲线） */
+      later(function(){
+        if(vert) set(SRC, A.x, A.y + A.h - CHW, A.w, CHW, T_EMPTY, E_EMPTY);
+        else     set(SRC, A.x + A.w - CHW, A.y, CHW, A.h, T_EMPTY, E_EMPTY);
+      }, D_START_EMPTY);
+      /* 5) 通道从头收掉，汇进新按钮（缓停曲线） */
+      later(function(){
+        if(vert){
+          var d2 = B.cy >= A.cy ? 1 : -1;
+          var start = d2 > 0 ? (A.y + A.h - 3) : (A.y + 3);
+          set(CH, A.cx-CHW/2, Math.min(start, B.cy), CHW, Math.abs(B.cy - start), T_TAIL, E_TAIL);
+        }else{
+          var d3 = B.cx >= A.cx ? 1 : -1;
+          var startx = d3 > 0 ? (A.x + A.w - 3) : (A.x + 3);
+          set(CH, Math.min(startx, B.cx), A.cy-CHW/2, Math.abs(B.cx - startx), CHW, T_TAIL, E_TAIL);
+        }
+      }, D_TAIL);
+      later(function(){ rest(); }, D_TAIL + T_TAIL + 40);
+    }, 16);
   }
+
   tabs.forEach(function(t,i){ t.addEventListener('click', function(){ go(i); }); });
   if(typeof window.addEventListener==='function'){
     window.addEventListener('resize', function(){ if(phase==='rest') rest(); });
   }
+  var tog=document.getElementById('navToggle');
+  if(tog && tog.addEventListener) tog.addEventListener('click', function(){ setTimeout(rest, 260); });
   rest();
-  window.__ink={go:go, rest:rest, rel:rel, vertical:vertical, setDur:function(t){T=t;},
-    get dur(){return T}, get cur(){return cur}, get phase(){return phase}};
+  window.__ink={go:go, rest:rest, rel:rel, vertical:vertical,
+    setDur:function(t){ T_FLOW=t; }, get cur(){return cur}, get phase(){return phase}};
 })();
 
 /* ---------- 启动动画 ----------
@@ -763,56 +815,61 @@ runUrlParams();
 (function(){
   var list=document.getElementById('ruleList');
   if(!list) return;
-  var q=document.getElementById('ruleQ');
-  var cats=document.getElementById('ruleCats');
-  var cnt=document.getElementById('ruleCount');
-  var ITEMS=RULES.map(function(r){
-    return {kind:'rule',sev:r.s,n:r.n,why:r.why||'',fix:r.fix||[],code:r.code||'',keys:(r.k||[]).join(' / ')};
-  }).concat(LOGIC.map(function(o){
-    return {kind:'log',sev:'log',n:o.n,why:o.why||'',fix:o.fix||[],code:o.code||'',keys:''};
-  }));
-  // 搜索文本：先去标签再拼，否则 <code> 里的字搜不到
-  ITEMS.forEach(function(it){
-    it.blob=(stripTags(it.n)+' '+stripTags(it.why)+' '+it.fix.map(stripTags).join(' ')
-             +' '+stripTags(it.code)+' '+it.keys).toLowerCase();
-  });
-  var cat='all';
-  function render(){
-    var kw=(q&&q.value||'').trim().toLowerCase();
-    var words=kw?kw.split(/\s+/) : [];
-    var hit=ITEMS.filter(function(it){
-      if(cat==='log' && it.kind!=='log') return false;
-      if((cat==='e'||cat==='w') && !(it.kind==='rule'&&it.sev===cat)) return false;
-      return words.every(function(w){ return it.blob.indexOf(w)>=0; });
+  var ready=false;
+  window.__initRules=function(){
+    if(ready) return;
+    ready=true;
+    var q=document.getElementById('ruleQ');
+    var cats=document.getElementById('ruleCats');
+    var cnt=document.getElementById('ruleCount');
+    var ITEMS=RULES.map(function(r){
+      return {kind:'rule',sev:r.s,n:r.n,why:r.why||'',fix:r.fix||[],code:r.code||'',keys:(r.k||[]).join(' / ')};
+    }).concat(LOGIC.map(function(o){
+      return {kind:'log',sev:'log',n:o.n,why:o.why||'',fix:o.fix||[],code:o.code||'',keys:''};
+    }));
+    // 搜索文本：先去标签再拼，否则 <code> 里的字搜不到
+    ITEMS.forEach(function(it){
+      it.blob=(stripTags(it.n)+' '+stripTags(it.why)+' '+it.fix.map(stripTags).join(' ')
+               +' '+stripTags(it.code)+' '+it.keys).toLowerCase();
     });
-    if(cnt) cnt.textContent = hit.length
-      ? ('命中 '+hit.length+' 条'+(kw?('（搜「'+kw+'」）'):''))
-      : '没搜到。换个词试试：「分号」「括号」「scanf」「越界」「初始化」';
-    if(!hit.length){ list.innerHTML=''; return; }
-    list.innerHTML=hit.map(function(it){
-      var b=it.kind==='log'?'w':it.sev;
-      var tag=it.kind==='log'?'逻辑坑':badge(it.sev);
-      return '<details class="card '+b+'"><summary><h3>'+it.n
-        +'<span class="badge '+b+'">'+tag+'</span></h3></summary>'
-        +'<div class="why">'+it.why+'</div>'
-        +(it.fix.length?'<ul class="fix">'+it.fix.map(function(f){return '<li>'+f+'</li>';}).join('')+'</ul>':'')
-        +(it.code?tplBlock(it.code):'')
-        +(it.keys?'<div class="say">命中关键词：<code>'+esc(it.keys)+'</code></div>':'')
-        +'</details>';
-    }).join('');
-  }
-  var t=null;
-  if(q) q.addEventListener('input',function(){      // 44 条重建有点重，输入时防抖一下
-    clearTimeout(t); t=setTimeout(render,120);
-  });
-  if(cats) cats.addEventListener('click',function(e){
-    var b=e.target.closest && e.target.closest('.chip');
-    if(!b) return;
-    [].forEach.call(cats.querySelectorAll('.chip'),function(c){c.classList.toggle('on',c===b);});
-    cat=b.getAttribute('data-c')||'all';
+    var cat='all';
+    function render(){
+      var kw=(q&&q.value||'').trim().toLowerCase();
+      var words=kw?kw.split(/\s+/) : [];
+      var hit=ITEMS.filter(function(it){
+        if(cat==='log' && it.kind!=='log') return false;
+        if((cat==='e'||cat==='w') && !(it.kind==='rule'&&it.sev===cat)) return false;
+        return words.every(function(w){ return it.blob.indexOf(w)>=0; });
+      });
+      if(cnt) cnt.textContent = hit.length
+        ? ('命中 '+hit.length+' 条'+(kw?('（搜「'+kw+'」）'):''))
+        : '没搜到。换个词试试：「分号」「括号」「scanf」「越界」「初始化」';
+      if(!hit.length){ list.innerHTML=''; return; }
+      list.innerHTML=hit.map(function(it){
+        var b=it.kind==='log'?'w':it.sev;
+        var tag=it.kind==='log'?'逻辑坑':badge(it.sev);
+        return '<details class="card '+b+'"><summary><h3>'+it.n
+          +'<span class="badge '+b+'">'+tag+'</span></h3></summary>'
+          +'<div class="why">'+it.why+'</div>'
+          +(it.fix.length?'<ul class="fix">'+it.fix.map(function(f){return '<li>'+f+'</li>';}).join('')+'</ul>':'')
+          +(it.code?tplBlock(it.code):'')
+          +(it.keys?'<div class="say">命中关键词：<code>'+esc(it.keys)+'</code></div>':'')
+          +'</details>';
+      }).join('');
+    }
+    var t=null;
+    if(q) q.addEventListener('input',function(){      // 44 条重建有点重，输入时防抖一下
+      clearTimeout(t); t=setTimeout(render,120);
+    });
+    if(cats) cats.addEventListener('click',function(e){
+      var b=e.target.closest && e.target.closest('.chip');
+      if(!b) return;
+      [].forEach.call(cats.querySelectorAll('.chip'),function(c){c.classList.toggle('on',c===b);});
+      cat=b.getAttribute('data-c')||'all';
+      render();
+    });
     render();
-  });
-  render();
+  };
 })();
 
 /* ---------- 复制成链接 ----------
@@ -871,6 +928,11 @@ function b64uEnc(str){
       return '<button type="button" class="chip" data-i="'+i+'">'+esc(label(it.t))+'</button>';
     }).join('')+'<button type="button" class="chip" data-clr="1" title="清掉这些记录">清空记录</button>';
   }
+  var input=document.getElementById('errIn');
+  if(input && input.addEventListener) input.addEventListener('focus',paint,{once:true});
+  // 首屏就渲染一次历史：常来的用户一进页面就该看见「最近查过」，
+  // 不能等他把光标点进输入框才出现（原来的行为就是进页面即渲染）。
+  paint();
   window.histPush=function(raw,code){
     raw=String(raw||'').trim(); code=String(code||'').trim();
     if(!raw && !code) return;
@@ -891,5 +953,4 @@ function b64uEnc(str){
     document.getElementById('codeIn2').value=it.c||'';
     var nd=document.getElementById('doErr'); if(nd) nd.click();
   });
-  paint();
 })();

@@ -5,7 +5,7 @@
    s: e=error  w=warning  i=info
    ========================================================== */
 const RULES=[
-{k:["expected ';' before"],s:"e",n:"上一行末尾漏了分号",t:"末尾漏了分号（这行或上一行）",
+{k:["expected ';' before","expected a ';'"],s:"e",n:"上一行末尾漏了分号",t:"末尾漏了分号（这行或上一行）",
  code:`int a = 1;             // ✅ 每句结尾都要有分号
 int b = 2;
 printf("hello\\n");     // ✅ 函数调用后面也要
@@ -31,7 +31,7 @@ printf("%d", c);`,
  fix:["用「代码体检」标签页一键查括号配对","缩进对齐后再数一遍：每个 <code>{</code> 都要有 <code>}</code>",
       "Dev-C++ 里把光标点在 <code>{</code> 上，它会高亮配对的 <code>}</code>"]},
 
-{k:["undeclared (first use in this function)","was not declared in this scope","undeclared identifier","undefined identifier"],s:"e",
+{k:["undeclared (first use in this function)","was not declared in this scope","undeclared identifier","undefined identifier","use of undeclared identifier","is undefined"],s:"e",
  n:"用了一个没声明的变量名",
  code:`int main(){
     int sum = 0;       // ✅ 变量全部写在函数最上面
@@ -90,7 +90,7 @@ count = count + 1，   // ❌ 全角逗号 → 同样报错
       "函数名拼写要和定义完全一致",
       "用了数学库时：<code>#include &lt;math.h&gt;</code>，Dev-C++ 项目属性里加 <code>-lm</code>"]},
 
-{k:["no such file or directory"],s:"e",
+{k:["no such file or directory","cannot open source file","could not open source file","include errors detected","no directories in search list"],s:"e",
  n:"头文件找不到 / 文件名写错",
  why:"<code>#include &lt;stdio.h&gt;</code> 里的名字拼错了，或者用了 <code>&lt;iostream&gt;</code> 这种 C 里没有的头文件。",
  fix:["C 语言的头文件是 <code>stdio.h</code> <code>math.h</code> <code>string.h</code>，<strong>别写 .cpp 里的 iostream</strong>",
@@ -234,14 +234,14 @@ for (i = 0; i < 5; i++)     // ✅ 用 < ，不要用 <=
       "任务管理器里结束残留进程",
       "或者把项目挪出 OneDrive / 桌面同步目录再试"]},
 
-{k:["expected expression before"],s:"e",
+{k:["expected expression before","expected an expression"],s:"e",
  n:"某个符号前面缺了个东西（表达式不完整）",
  why:"常见是 <code>scanf(\"%d\",);</code> 漏参数、多打了一个逗号、或者 <code>printf</code> 里格式串和参数之间语法断了。",
  fix:["检查报错那个符号<strong>前面</strong>是不是少了变量或数值",
       "检查是不是多打了逗号或括号",
       "把那一行单独抄出来手动数一遍括号和逗号"]},
 
-{k:["expected ')' before"],s:"e",
+{k:["expected ')' before","expected a ')'"],s:"e",
  n:"圆括号没配对，或括号里内容写错",
  why:"<code>for (i = 0; i &lt; n; i++)</code> 里漏了括号、或者 <code>if (x &gt; 0</code> 没闭合。",
  fix:["用「代码体检」查括号配对",

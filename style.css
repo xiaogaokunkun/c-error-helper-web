@@ -125,7 +125,7 @@ html.dark .topbar{background:rgba(16,22,30,.42);border-bottom-color:rgba(255,255
   background:var(--card);color:var(--mut);cursor:pointer;font-size:var(--t1);line-height:1;
   font-family:inherit}
 .navtoggle:hover{color:var(--accent);border-color:var(--accent)}
-.navlist{display:flex;flex-direction:column;gap:var(--s1)}
+.navlist{display:flex;flex-direction:column;gap:14px}
 .navmore{margin-top:var(--s2);padding-top:var(--s2);border-top:1px solid var(--line);
   display:flex;flex-direction:column;gap:var(--s1)}
 .navlink{display:flex;align-items:center;gap:10px;padding:var(--s2) var(--s3);
@@ -162,20 +162,35 @@ body.nav-collapsed .navhead{justify-content:center;padding-bottom:var(--s2)}
 body.nav-collapsed .tab{justify-content:center;padding:10px 0}
 body.nav-collapsed .navlink{justify-content:center;padding:var(--s2) 0}
 body.nav-collapsed .navlink .tx{display:none}
-/* 窄屏：左栏变顶部横条 */
+/* 窄屏：左栏变顶部一条横排的 chip 条
+   原来换行成两块、整块占 265px 高，手机上第一屏被导航吃掉一大半，
+   输入框要滑到 y=480 才看得见。现在只留一行、能横向滑，副标题收掉。 */
 @media (max-width:760px){
-  .app{display:block;padding:var(--s4) var(--s3) var(--s6)}
-  .nav{position:static;width:auto;margin-bottom:var(--s4);border-radius:var(--r3)}
-  .navhead{border-bottom:0;margin-bottom:var(--s2)}
+  .app{display:block;padding:var(--s3) var(--s3) var(--s6)}
+  .nav{position:relative;width:auto;margin-bottom:var(--s3);border-radius:var(--r3);
+    padding:var(--s2);overflow:hidden}
+  .navhead{display:none}          /* 顶部横幅已经写着页面名，这里再写一遍只是白占 44px */
   .navtoggle{display:none}
-  .navlist{flex-direction:row;flex-wrap:wrap;gap:var(--s2)}
-  .tab{width:auto;flex:none}
-  .navmore{flex-direction:row;flex-wrap:wrap;margin-top:var(--s2)}
-  .navlink{width:auto;padding:var(--s2) var(--s3)}
+  .navlist{flex-direction:row;flex-wrap:nowrap;gap:12px;overflow-x:auto;overflow-y:hidden;
+    scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:1px}
+  .navlist::-webkit-scrollbar,.navmore::-webkit-scrollbar{display:none}
+  .tab{width:auto;flex:none;padding:9px var(--s3);min-height:40px;font-size:var(--t2);gap:7px}
+  .navmore{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;margin-top:var(--s2);
+    padding-top:var(--s2);gap:6px}
+  .navlink{width:auto;padding:6px var(--s2);min-height:34px;gap:6px}
+  .navlink .tx small{display:none}  /* 副标题在手机上把每条挤成两行，只留主标题 */
+  /* 右侧一道淡渐隐：提醒这两条还能横向滑（5 个功能一屏放不下，最后那个「反馈」在屏幕外） */
+  .nav::after{content:'';position:absolute;right:1px;top:5px;bottom:5px;width:24px;pointer-events:none;
+    background:linear-gradient(to right,transparent,var(--card));border-radius:0 var(--r3) var(--r3) 0}
   body.nav-collapsed .nav{width:auto}
   body.nav-collapsed .tab .tx{display:inline}
   body.nav-collapsed .navlink .tx{display:flex}
   body.nav-collapsed .navbrand{display:block}
+  /* 窄屏关掉液珠：横排 + 横向滚动时，那颗蓝球按 offset 定位，一滚就偏。
+     触屏本来就是静态高亮，这里让窄屏的桌面窗口也走同一套。
+     （真正的高亮色写在文件末尾的「收尾覆盖」里 —— 液体那一段的 .tab.on{background:none}
+      写在后面，同权重后写的赢，这里写会被它盖掉） */
+  .inkgoo{display:none}
 }
 /* ---------- 面板切换动画 ---------- */
 :root{--pane-dur:.6s;--pane-shift:16px;--pane-ease:cubic-bezier(.22,1,.36,1)}
@@ -250,6 +265,18 @@ body.nores .reshead #resCopy,body.nores .reshead #chkCopy,body.nores .reshead #i
 /* 空状态：把「结果会出现在这里」框住，而不是让一行灰字飘在空白里 */
 .empty{color:var(--mut);text-align:center;padding:var(--s6) var(--s4);font-size:var(--t3);
   border:1px dashed var(--line);border-radius:var(--r2);background:rgba(255,255,255,.55)}
+.empty strong{display:block;font-size:var(--t4);color:var(--fg);font-weight:700;margin-bottom:var(--s1)}
+.empty small{display:block;font-size:var(--t2);color:var(--mut);line-height:1.75;max-width:36em;
+  margin:0 auto}
+/* 桌面：左栏输入框 424px 高，右栏原来只有 159px 的空框、下面空一大块。
+   让右栏跟左栏等高，空状态在框里居中，别悬在半空。 */
+@media (min-width:1001px){
+  .work{align-items:stretch}
+  .col-out .result{flex:1;display:flex;flex-direction:column;min-height:0}
+  .col-out .result>div[id]{flex:1;display:flex;flex-direction:column;min-height:0}
+  .col-out .result>div[id]>.empty{flex:1;min-height:280px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:var(--s2)}
+}
 /* ---------- 卡片 ---------- */
 .card{background:var(--card);border:1px solid var(--line);border-left-width:4px;
   border-radius:var(--r2);padding:var(--s4);margin-bottom:var(--s3);box-shadow:var(--sh1)}
@@ -348,17 +375,24 @@ mark.fw{background:var(--errbg);border:1px solid var(--err);
    .ink 是那块深蓝；它不动高度的时候就是"充满按钮"的填充色。
    切换时先朝目标方向伸长（把两个选项连同中间那段一起包住），再把尾巴收回来 —— 像液体流过去。
    .inkgoo 上的 goo 滤镜把圆角糊成鼓包，伸长的过程就有了"黏"的质感。 */
-:root{--ink:#1d4ed8}
-html.dark{--ink:#1f56cc}
+:root{--ink:#1740c4}
+html.dark{--ink:#1a4ac2}
 .svgdefs{position:absolute;width:0;height:0;overflow:hidden}
 .navlist{position:relative}
 .inkgoo{position:absolute;left:0;right:0;top:0;bottom:0;z-index:0;pointer-events:none;
   filter:url(#goo)}
 /* 四个形状的位置/尺寸全部由 JS 内联给（left/top/width/height），
    这样竖排（桌面）和横排（窄屏）能用同一套代码，只是换一根轴 */
-.ink{position:absolute;left:0;top:0;width:0;height:0;background:var(--ink);
-  border-radius:var(--r2);will-change:left,top,width,height}
+.ink{position:absolute;left:0;top:0;width:0;height:0;
+  background:var(--ink);border-radius:50%;will-change:left,top,width,height}
+/* 颜色深浅交给「整块液体」一份径向高光，而不是每个球自带渐变——
+   几十个球各自带渐变叠在一起，边缘就会叠出一圈圈分层。 */
 .tab{position:relative;z-index:1;background:none}
+
+/* ---------- 液体三块：旧按钮 / 笔直通道 / 新按钮 ----------
+   三块同色，靠 .inkgoo 的 goo 滤镜糊成一股；圆角吃满短边 => 两端是半圆。 */
+.inkpart{position:absolute;left:0;top:0;width:0;height:0;background:var(--ink);
+  border-radius:999px;will-change:left,top,width,height}
 /* 选中项：字变白（深蓝底上白字是 6.7:1） */
 .tab.on{color:#fff;background:none;font-weight:600}
 .tab.on .ic{color:#fff}
@@ -405,6 +439,11 @@ html.dark{--ink:#1f56cc}
 @media (max-width:760px){
   .app{padding-top:84px}   /* 窄屏横幅 68px 高 + 16px 间距 */
   .nav{top:0}
+  /* 窄屏导航的高亮只能写在这儿：上面「选项之间的液体填充」那段里有一句
+     .tab.on{color:#fff;background:none}，同权重、后写的赢，写在前面会被它盖成
+     「白字压白底」——实测就是导航里第一个按钮整个消失。 */
+  .tab.on,.tab.leaving,.tab.on.waiting{color:#fff;background:var(--ink);font-weight:600}
+  .tab.on .ic,.tab.leaving .ic,.tab.on.waiting .ic{color:#fff}
 }
 /* 触屏设备：JS 里液体填充动画被禁用，这里恢复静态高亮（深蓝底白字），
    选中项永远清晰、高亮与内容同步 */
@@ -413,6 +452,10 @@ html.dark{--ink:#1f56cc}
   .tab.on .ic{color:#fff}
   .tab.leaving,.tab.on.waiting{color:#fff}
   .tab{transition:none}
+}
+/* 触屏：切换「报错原文 / 代码」那两颗实测只有 24px 高，手指点容易偏 */
+@media (hover: none) and (pointer: coarse){
+  .segb{min-height:40px;padding:8px var(--s3);font-size:var(--t2)}
 }
 /* ---------- 启动动画 ----------
    流程：深色全屏 → 标题逐字弹出 → 标题移到左上角（跟真实 h1 重合）
