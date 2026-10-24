@@ -511,3 +511,25 @@ body.intro-done .main{animation:elBottom .7s cubic-bezier(.22,1,.36,1) .2s both}
 #ruleQ{margin:var(--s2) 0 0}
 #ruleCats{margin:var(--s2) 0 var(--s1)}
 #ruleList details{margin-top:var(--s2)}
+
+/* ---------- 主题切换：新主题从按钮位置圆形铺开至全屏 ----------
+   View Transitions API 给切换前后各截一张图（::view-transition-old/new），
+   旧图保持不动，新图按 clip-path 圆从按钮中心扩到最远角。
+   两边默认的交叉淡入必须关掉，否则叠在一起会糊成灰调。
+   JS 若检测到不支持 / 用户关了动效，会绕过这套直接切。 */
+::view-transition-old(root),
+::view-transition-new(root){
+  animation:none;
+  mix-blend-mode:normal;
+}
+html.theme-wipe::view-transition-new(root){
+  animation:themeWipe .6s cubic-bezier(.4,0,.2,1) both;   /* 原来 .22,1 起步太猛：90ms 就铺到一半半径，看不出扩散过程 */
+}
+@keyframes themeWipe{
+  from{clip-path:circle(0px at var(--theme-x,50%) var(--theme-y,50%))}
+  to  {clip-path:circle(var(--theme-r,150vmax) at var(--theme-x,50%) var(--theme-y,50%))}
+}
+@media (prefers-reduced-motion:reduce){
+  html.theme-wipe::view-transition-old(root),
+  html.theme-wipe::view-transition-new(root){animation:none}
+}

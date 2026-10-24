@@ -845,11 +845,42 @@ runUrlParams();
     btn.setAttribute('aria-pressed',d?'true':'false');
     btn.title='当前'+(d?'深色':'浅色')+'（'+(t?'已手动设置':'跟随系统')+'），点击切换';
   }
+  /* 切换主题 + 圆形扩散转场
+     用 View Transitions API：浏览器给切换前后各截一张图，旧图留着不动，
+     新图用 clip-path 从按钮中心画圆扩到屏幕最远角 —— 颜色就像从按钮里涌出来。
+     不支持 VT（或用户关了动效）时直接切，不留中间态。 */
+  var wiping=false;
+  function calm(){
+    try{ return window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches; }
+    catch(e){ return false; }
+  }
   btn.addEventListener('click',function(){
+    if(wiping) return;                       // 转场中连点会把 VT 打断成半截
     var d=!isDark();
-    document.documentElement.classList.toggle('dark',d);
-    try{ localStorage.setItem(KEY,d?'dark':'light'); }catch(e){}
-    paint();
+    var apply=function(){
+      document.documentElement.classList.toggle('dark',d);
+      try{ localStorage.setItem(KEY,d?'dark':'light'); }catch(e){}
+      paint();
+      var mt=document.querySelector('meta[name=theme-color]');
+      if(mt) mt.setAttribute('content', d?'#0f1216':'#2563eb');
+    };
+    if(!document.startViewTransition || calm()){ apply(); return; }
+
+    var r=btn.getBoundingClientRect();
+    var x=r.left+r.width/2, y=r.top+r.height/2;
+    /* 半径取到最远的那只角：正方形覆盖不了宽屏，得用圆心到四角的最大距离 */
+    var R=Math.hypot(Math.max(x, innerWidth-x), Math.max(y, innerHeight-y));
+    var root=document.documentElement;
+    root.style.setProperty('--theme-x', x+'px');
+    root.style.setProperty('--theme-y', y+'px');
+    root.style.setProperty('--theme-r', Math.ceil(R)+'px');
+    root.classList.add('theme-wipe');
+    wiping=true;
+    var vt=document.startViewTransition(apply);
+    vt.finished.finally(function(){
+      wiping=false;
+      root.classList.remove('theme-wipe');
+    });
   });
   // 还是「跟随系统」时，系统主题变了要跟着变
   try{
