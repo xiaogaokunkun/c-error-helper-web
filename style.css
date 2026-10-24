@@ -400,6 +400,17 @@ html.dark{--ink:#1a4ac2}
    三块同色，靠 .inkgoo 的 goo 滤镜糊成一股；圆角吃满短边 => 两端是半圆。 */
 .inkpart{position:absolute;left:0;top:0;width:0;height:0;background:var(--ink);
   border-radius:999px;will-change:left,top,width,height}
+/* ---------- 收尾时的液锥形尾巴 ----------
+   四点梯形，把「尾端」那两个角合并到中线 = 收成一个尖。
+   矩形的四点顺序是 左上/右上/右下/左下，所以每种方向只要让对应的两点重合：
+     向下流→尾在上、向上流→尾在下、向右流→尾在左、向左流→尾在右。
+   点数不变（都 4 个）浏览器才能插值；尖头随后会被 goo 滤镜糊钝，
+   正好是表面张力拉出来的锥形，不是死板的三角。 */
+.inkchan{clip-path:polygon(0 0,100% 0,100% 100%,0 100%)}
+.inkchan.tp-d{clip-path:polygon(50% 0,50% 0,100% 100%,0 100%)}
+.inkchan.tp-u{clip-path:polygon(0 0,100% 0,50% 100%,50% 100%)}
+.inkchan.tp-r{clip-path:polygon(0 50%,100% 0,100% 100%,0 50%)}
+.inkchan.tp-l{clip-path:polygon(0 0,100% 50%,100% 50%,0 100%)}
 /* 选中项：字变白（深蓝底上白字是 6.7:1） */
 .tab.on{color:#fff;background:none;font-weight:600}
 .tab.on .ic{color:#fff}

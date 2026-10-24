@@ -616,11 +616,17 @@ runUrlParams();
     return {x:x, y:y, w:w, h:h, cx:x+w/2, cy:y+h/2};
   }
   function set(el, x, y, w, h, dur, ease){
-    el.style.transition = dur ? ('left '+dur+'ms '+(ease||'linear')+', top '+dur+'ms '+(ease||'linear')
-      +', width '+dur+'ms '+(ease||'linear')+', height '+dur+'ms '+(ease||'linear')) : 'none';
+    var e=ease||'linear';
+    /* clip-path 必须一起过渡：内联 transition 会盖掉样式表里的，漏了它锥形就是硬切 */
+    el.style.transition = dur ? ('left '+dur+'ms '+e+', top '+dur+'ms '+e
+      +', width '+dur+'ms '+e+', height '+dur+'ms '+e+', clip-path '+dur+'ms '+e) : 'none';
     el.style.left=x+'px'; el.style.top=y+'px'; el.style.width=Math.max(0,w)+'px'; el.style.height=Math.max(0,h)+'px';
   }
   function hide(el){ set(el,0,0,0,0); }
+  var TAPERS='tp-d tp-u tp-r tp-l';
+  function setTaper(cls){
+    CH.className = 'inkpart inkchan' + (cls ? ' '+cls : '');
+  }
   function clearTimers(){ timers.forEach(clearTimeout); timers=[]; }
   function later(fn, ms){ timers.push(setTimeout(fn, ms)); }
 
@@ -632,6 +638,7 @@ runUrlParams();
     tabs.forEach(function(t){ t.classList.remove('leaving'); t.classList.remove('waiting'); t.classList.remove('pass'); });
     var r=rel(cur);
     set(DST, r.x, r.y, r.w, r.h);
+    setTaper('');
     hide(CH); hide(SRC);
     phase='rest';
   }
@@ -697,6 +704,7 @@ runUrlParams();
     var CHW=Math.max(9, Math.round(Math.min(A.h,B.h)*0.58));
     var dist = vert ? (B.cy-A.cy) : (B.cx-A.cx);
 
+    setTaper('');   /* 连点时上一轮可能停在锥形，先复位成矩形 */
     /* 1) 起点：src 贴在旧按钮上，通道长度 0、停在旧按钮边缘 */
     set(SRC, A.x, A.y, A.w, A.h, 0);
     hide(CH); hide(DST);
@@ -747,8 +755,13 @@ runUrlParams();
       /* 5) 通道从头部被吸进新按钮 —— 长度必须归 0。
          原来只收到 B.cy 就交给 rest()，剩下 40px 被瞬间抹掉，看着是「啪」一下 */
       later(function(){
-        if(vert) set(CH, A.cx-CHW/2, B.cy, CHW, 0, T_TAIL, E_TAIL);
-        else     set(CH, B.cx, A.cy-CHW/2, 0, CHW, T_TAIL, E_TAIL);
+        if(vert){
+          set(CH, A.cx-CHW/2, B.cy, CHW, 0, T_TAIL, E_TAIL);
+          setTaper(B.cy >= A.cy ? 'tp-d' : 'tp-u');     /* 尾巴朝「来的时候」那一端收尖 */
+        }else{
+          set(CH, B.cx, A.cy-CHW/2, 0, CHW, T_TAIL, E_TAIL);
+          setTaper(B.cx >= A.cx ? 'tp-r' : 'tp-l');
+        }
       }, D_TAIL);
       later(function(){ rest(); },
         Math.max(D_TAIL + T_TAIL, D_START_FILL + D_BEAD + T_BEAD + T_FILL) + 30);
