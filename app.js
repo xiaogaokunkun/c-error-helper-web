@@ -590,12 +590,15 @@ runUrlParams();
   var cur=0, phase='rest', timers=[];
   var reduce = typeof matchMedia==='function' && matchMedia('(prefers-reduced-motion:reduce)').matches;
   /* 变速曲线：这是这次的重点 —— 每段速度都不一样 */
-  var E_FLOW  = 'cubic-bezier(.55,0,.85,.35)';   /* 通道下坠：起步慢、越掉越快 */
-  var E_FILL  = 'cubic-bezier(.18,1.5,.42,1)';   /* 撑满：冲过头再回弹 */
-  var E_EMPTY = 'cubic-bezier(.45,0,.9,.45)';    /* 抽空：加速收 */
+  /* 变速曲线：起步不能慢 —— 点击后 100ms 内画面必须有东西在动，否则就是「延迟感」 */
+  var E_FLOW  = 'cubic-bezier(.2,.7,.3,1)';      /* 通道生长：起步就快、末段收住 */
+  var E_FILL  = 'cubic-bezier(.2,1.12,.35,1)';   /* 撑满：轻微回弹，原来 1.5 过冲抖得厉害 */
+  var E_EMPTY = 'cubic-bezier(.4,0,.75,.4)';     /* 抽空：加速收 */
   var E_TAIL  = 'cubic-bezier(.4,0,.55,1)';      /* 通道收尾：缓停 */
-  var T_FLOW=430, T_FILL=520, T_EMPTY=430, T_TAIL=320;
-  var D_START_FILL=430, D_START_EMPTY=250, D_TAIL=980;
+  /* 总时长 1340ms -> 790ms。原来 430+520+320 太拖：内容早切完了，蓝块还在爬 */
+  var T_FLOW=190, T_FILL=200, T_EMPTY=200, T_TAIL=190, T_BEAD=70;
+  var D_BEAD=-30;   /* 水珠比通道到达提前 30ms 开始鼓：液体在管里推进时目标端先受冲 */
+  var D_START_FILL=190, D_START_EMPTY=70, D_TAIL=230;
 
   tabs.forEach(function(t,i){ if(t.classList.contains('on')) cur=i; });
 
@@ -624,80 +627,131 @@ runUrlParams();
   /* 静止：只有 dst 贴在当前项上，通道和 src 都收成 0 */
   function rest(){
     clearTimers();
+    clearTimeout(tSrc); clearTimeout(tDst);
+    /* 动画被打断（连点 / resize / 收起左栏）时也要把字色收回干净 */
+    tabs.forEach(function(t){ t.classList.remove('leaving'); t.classList.remove('waiting'); t.classList.remove('pass'); });
     var r=rel(cur);
     set(DST, r.x, r.y, r.w, r.h);
     hide(CH); hide(SRC);
     phase='rest';
   }
 
+  /* 液柱扫过的中间按钮：跨多个切换时（如 tab0->tab3）通道会盖住中间那几个按钮，
+     深蓝底 + 深色字 = 看不见。按距离依次点亮，跟液柱推进同步 */
+  var tPass=[];
+  function markPass(from, to){
+    tPass.forEach(clearTimeout); tPass=[];
+    tabs.forEach(function(t){ t.classList.remove('pass'); });
+    if(!layer.offsetParent) return;          /* 窄屏/触屏液珠是 display:none，别点亮 */
+    var lo=Math.min(from,to), hi=Math.max(from,to), span=Math.abs(to-from)||1;
+    for(var k=lo+1;k<hi;k++){
+      (function(k){
+        var d=Math.abs(k-from)/span;
+        tPass.push(setTimeout(function(){ tabs[k].classList.add('pass'); }, T_FLOW*d*0.85));
+      })(k);
+    }
+  }
+
   /* 字色：蓝还没流到的那一侧保持灰字 */
   var tSrc=null, tDst=null;
-  function markText(from, to){
+  function markText(from, to, keep){
     clearTimeout(tSrc); clearTimeout(tDst);
+    /* 连点时上一轮的 class 还挂在别的按钮上（clearTimeout 只清计时器，不清 class），
+       两个按钮会同时是 leaving+waiting，字色就乱了 —— 先全清再标 */
+    tabs.forEach(function(t){ t.classList.remove('leaving'); t.classList.remove('waiting'); });
     tabs[from].classList.add('leaving');
     tabs[to].classList.add('waiting');
-    tSrc=setTimeout(function(){ tabs[from].classList.remove('leaving'); }, 380);
-    tDst=setTimeout(function(){ tabs[to].classList.remove('waiting'); }, 520);
+    /* 白字的时机必须等蓝块真的铺过去。原来写死 520ms，那时新块只铺了 94/156px，
+       结果是「白字压浅底」，看着像蓝块从字上穿过去 */
+    tSrc=setTimeout(function(){ tabs[from].classList.remove('leaving'); }, 320);
+    tDst=setTimeout(function(){ tabs[to].classList.remove('waiting'); }, keep||520);
   }
 
   function go(i){
     if(i===cur) return;
-    if(phase!=='rest'){ rest(); }
-    var from=cur, vert=vertical();
-    var A=rel(from), B=rel(i);
+    var from=cur, vert=vertical(), A;
+    if(phase!=='rest'){
+      /* 连点：从蓝块当前视觉位置接管。直接 rest() 会把它瞬移回旧位置 —— 那也是穿模 */
+      clearTimers(); hide(SRC);
+      var d=DST.getBoundingClientRect(), l=list.getBoundingClientRect();
+      var base=rel(from);
+      /* DST 此刻可能还藏着（0×0 停在容器左上角）。拿它的坐标当起点，
+         通道会从 left=8 竖着横穿整个列表 —— 尺寸不可信时必须退回旧按钮的位置 */
+      A = (d.width>8 && d.height>8)
+        ? {x:d.left-l.left, y:d.top-l.top, w:d.width, h:d.height,
+           cx:d.left-l.left+d.width/2, cy:d.top-l.top+d.height/2}
+        : base;
+    }else{
+      A=rel(from);
+    }
+    var B=rel(i);
     cur=i; phase='flow';
     tabs.forEach(function(t,k){ if(k!==i) t.classList.remove('on'); });
     tabs[i].classList.add('on');
-    markText(from, i);
+    markText(from, i, D_START_FILL + D_BEAD + T_BEAD + T_FILL*0.40);
+    markPass(from, i);
     if(reduce){ rest(); return; }
 
-    /* 通道宽度：按钮短边的 44%，竖排量高度、横排量宽度 */
-    var CHW=Math.max(8, Math.round((vert?A.h:A.w)*0.40));
+    /* 通道粗细 = 按钮短边（高度方向）的 52%。横排原来取 A.w（标签宽度），
+       会造出 40px+ 粗的通道，直接盖穿相邻按钮 —— 窄屏穿模就是这个 */
+    var CHW=Math.max(9, Math.round(Math.min(A.h,B.h)*0.58));
     var dist = vert ? (B.cy-A.cy) : (B.cx-A.cx);
-    var dir = dist>=0 ? 1 : -1;
 
-    /* 1) 起点：src 完整贴在旧按钮上，通道长度为 0、停在旧按钮中心 */
-    set(SRC, A.x, A.y, A.w, A.h);
+    /* 1) 起点：src 贴在旧按钮上，通道长度 0、停在旧按钮边缘 */
+    set(SRC, A.x, A.y, A.w, A.h, 0);
     hide(CH); hide(DST);
 
-    /* 2) 通道沿主轴生长到新按钮中心（加速曲线） */
+    /* 2) 通道沿主轴生长 —— 必须先无过渡归位到边缘，再只过渡长度。
+       一次 set 全改，left/top 也会被过渡，通道就从容器左上角斜着穿过按钮 */
     later(function(){
-      var OS=1.18;   /* 冲出终点 18%：轨迹更长，眼睛才跟得住 */
+      var OS=1.02;   /* 只冲出 2%：冲多了 dst 撑满后盖不住，会在按钮外露一圈 */
       if(vert){
-        var dir = B.cy >= A.cy ? 1 : -1;
-        var y0 = dir > 0 ? (A.y + A.h - 3) : (A.y + 3);        /* 从源按钮下(上)边缘出发，不从中心穿出来 */
+        var d1 = B.cy >= A.cy ? 1 : -1;
+        var y0 = d1 > 0 ? (A.y + A.h - 3) : (A.y + 3);
         var y1 = B.cy + (B.cy - y0) * (OS - 1);
-        set(CH, A.cx-CHW/2, Math.min(y0,y1), CHW, Math.abs(y1-y0), T_FLOW, E_FLOW);
+        var hh = Math.abs(y1 - y0);
+        /* 起点必须钉在「源端」y0，不是 min(y0,y1)。
+           向上切时 min 是目标端，通道会悬在半空朝源按钮长 —— 实测断开 101px */
+        set(CH, A.cx-CHW/2, y0, CHW, 0, 0);
+        void CH.offsetWidth;
+        set(CH, A.cx-CHW/2, Math.min(y0, y1), CHW, hh, T_FLOW, E_FLOW);
       }else{
-        var dirH = B.cx >= A.cx ? 1 : -1;
-        var x0 = dirH > 0 ? (A.x + A.w - 3) : (A.x + 3);
+        var d1h = B.cx >= A.cx ? 1 : -1;
+        var x0 = d1h > 0 ? (A.x + A.w - 3) : (A.x + 3);
         var x1 = B.cx + (B.cx - x0) * (OS - 1);
-        set(CH, Math.min(x0,x1), A.cy-CHW/2, Math.abs(x1-x0), CHW, T_FLOW, E_FLOW);
+        var ww = Math.abs(x1 - x0);
+        set(CH, x0, A.cy-CHW/2, 0, CHW, 0);
+        void CH.offsetWidth;
+        set(CH, Math.min(x0, x1), A.cy-CHW/2, ww, CHW, T_FLOW, E_FLOW);
       }
-      /* 3) 新按钮从通道粗细开始撑满（回弹曲线） */
+      /* 3) 目标端先鼓出一颗水珠（T_BEAD），再向两侧铺开。
+         原来是一步跳到 CHW×CHW，看着像「啪」贴上去一个圆，不像液体受冲压出来 */
       later(function(){
-        if(vert) set(DST, B.cx-CHW/2, B.cy-CHW/2, CHW, CHW, 1);
-        else     set(DST, B.cx-CHW/2, B.cy-CHW/2, CHW, CHW, 1);
-        later(function(){ set(DST, B.x, B.y, B.w, B.h, T_FILL, E_FILL); }, 16);
-      }, D_START_FILL);
-      /* 4) 旧按钮被抽空：底边不动、顶边往回收（加速曲线） */
+        set(DST, B.cx, B.cy, 0, 0, 0);       /* 0 尺寸时挂在中心，涨开时中心不动 */
+        void DST.offsetWidth;
+        set(DST, B.cx-CHW/2, B.cy-CHW/2, CHW, CHW, T_BEAD, E_FILL);
+        later(function(){ set(DST, B.x, B.y, B.w, B.h, T_FILL, E_FILL); }, T_BEAD);
+      }, D_START_FILL + D_BEAD);
+      /* 4) 旧按钮被抽空：底边不动、顶边往回收 */
       later(function(){
-        if(vert) set(SRC, A.x, A.y + A.h - CHW, A.w, CHW, T_EMPTY, E_EMPTY);
-        else     set(SRC, A.x + A.w - CHW, A.y, CHW, A.h, T_EMPTY, E_EMPTY);
-      }, D_START_EMPTY);
-      /* 5) 通道从头收掉，汇进新按钮（缓停曲线） */
-      later(function(){
+        /* 抽空要「抽干净」：收到 CHW 会在源位置留 17px 残块，液柱流走后
+           那坨还在原地，看着就是断开。收到 0，方向跟随通道那一侧 */
         if(vert){
-          var d2 = B.cy >= A.cy ? 1 : -1;
-          var start = d2 > 0 ? (A.y + A.h - 3) : (A.y + 3);
-          set(CH, A.cx-CHW/2, Math.min(start, B.cy), CHW, Math.abs(B.cy - start), T_TAIL, E_TAIL);
+          var up = B.cy < A.cy;
+          set(SRC, A.x, up ? A.y : (A.y + A.h), A.w, 0, T_EMPTY, E_EMPTY);
         }else{
-          var d3 = B.cx >= A.cx ? 1 : -1;
-          var startx = d3 > 0 ? (A.x + A.w - 3) : (A.x + 3);
-          set(CH, Math.min(startx, B.cx), A.cy-CHW/2, Math.abs(B.cx - startx), CHW, T_TAIL, E_TAIL);
+          var lw = B.cx < A.cx;
+          set(SRC, lw ? A.x : (A.x + A.w), A.y, 0, A.h, T_EMPTY, E_EMPTY);
         }
+      }, D_START_EMPTY);
+      /* 5) 通道从头部被吸进新按钮 —— 长度必须归 0。
+         原来只收到 B.cy 就交给 rest()，剩下 40px 被瞬间抹掉，看着是「啪」一下 */
+      later(function(){
+        if(vert) set(CH, A.cx-CHW/2, B.cy, CHW, 0, T_TAIL, E_TAIL);
+        else     set(CH, B.cx, A.cy-CHW/2, 0, CHW, T_TAIL, E_TAIL);
       }, D_TAIL);
-      later(function(){ rest(); }, D_TAIL + T_TAIL + 40);
+      later(function(){ rest(); },
+        Math.max(D_TAIL + T_TAIL, D_START_FILL + D_BEAD + T_BEAD + T_FILL) + 30);
     }, 16);
   }
 

@@ -379,7 +379,7 @@ mark.fw{background:var(--errbg);border:1px solid var(--err);
 html.dark{--ink:#1a4ac2}
 .svgdefs{position:absolute;width:0;height:0;overflow:hidden}
 .navlist{position:relative}
-.inkgoo{position:absolute;left:0;right:0;top:0;bottom:0;z-index:0;pointer-events:none;
+.inkgoo{position:absolute;left:0;right:0;top:0;bottom:0;z-index:1;pointer-events:none;
   filter:url(#goo)}
 /* 四个形状的位置/尺寸全部由 JS 内联给（left/top/width/height），
    这样竖排（桌面）和横排（窄屏）能用同一套代码，只是换一根轴 */
@@ -387,7 +387,14 @@ html.dark{--ink:#1a4ac2}
   background:var(--ink);border-radius:50%;will-change:left,top,width,height}
 /* 颜色深浅交给「整块液体」一份径向高光，而不是每个球自带渐变——
    几十个球各自带渐变叠在一起，边缘就会叠出一圈圈分层。 */
-.tab{position:relative;z-index:1;background:none}
+/* 层级：液柱(1) > 按钮背景(auto) > 页面底。
+   原来按钮是 z-index:1，鼠标划到别的按钮上，hover 底色整个盖在液柱上面。
+   按钮自己不能再建层叠上下文（z-index:auto + position:relative 不会建），
+   这样它的背景留在原位，文字靠 z-index:2 单独翻上去。 */
+.tab{position:relative;z-index:auto;background:none}
+.tab .ic, .tab .tx{position:relative;z-index:2}
+/* 液柱扫过的按钮（跨多个切换时中间那几个），深蓝压在深色字上会看不见 */
+.tab.pass, .tab.pass .ic{color:#fff}
 
 /* ---------- 液体三块：旧按钮 / 笔直通道 / 新按钮 ----------
    三块同色，靠 .inkgoo 的 goo 滤镜糊成一股；圆角吃满短边 => 两端是半圆。 */
